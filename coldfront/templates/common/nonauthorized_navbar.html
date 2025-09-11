@@ -13,9 +13,11 @@
         <li id="navbar-home" class="nav-item active">
           <a class="nav-link" href="/">Home</a>
         </li>
-        <li id="navbar-center-summary" class="nav-item">
-          <a class="nav-link" href="{% url 'center-summary' %}">Center Summary</a>
-        </li>
+        {% if settings.CENTER_SUMMARY_ENABLE %}
+          <li id="navbar-center-summary" class="nav-item">
+            <a class="nav-link" href="{% url 'center-summary' %}">Center Summary</a>
+          </li>
+        {% endif %}
         {% if settings.CENTER_HELP_URL %}
           {% include 'common/navbar_help.html' %}
         {% endif %}

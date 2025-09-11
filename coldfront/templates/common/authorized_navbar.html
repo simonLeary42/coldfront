@@ -14,9 +14,11 @@
         <li id="navbar-home" class="nav-item active">
           <a class="nav-link" href="/">Home</a>
         </li>
-        <li id="navbar-center-summary" class="nav-item">
-          <a class="nav-link" href="{% url 'center-summary' %}">Center Summary</a>
-        </li>
+        {% if settings.CENTER_SUMMARY_ENABLE %}
+          <li id="navbar-center-summary" class="nav-item">
+            <a class="nav-link" href="{% url 'center-summary' %}">Center Summary</a>
+          </li>
+        {% endif %}
         <li id="navbar-project-menu" class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">Project</a>
           <div class="dropdown-menu">

@@ -63,6 +63,7 @@ SETTINGS_EXPORT += [
     "GRANT_ENABLE",
     "PUBLICATION_ENABLE",
     "INVOICE_ENABLED",
+    "CENTER_SUMMARY_ENABLE",
 ]
 
 ADMIN_COMMENTS_SHOW_EMPTY = ENV.bool("ADMIN_COMMENTS_SHOW_EMPTY", default=True)
@@ -85,6 +86,11 @@ ALLOCATION_ATTRIBUTE_VIEW_LIST = ENV.list(
 INVOICE_ENABLED = ENV.bool("INVOICE_ENABLED", default=True)
 # Override default 'Pending Payment' status
 INVOICE_DEFAULT_STATUS = ENV.str("INVOICE_DEFAULT_STATUS", default="New")
+
+# ------------------------------------------------------------------------------
+# Enable "Center Summary" in the navbar
+# ------------------------------------------------------------------------------
+CENTER_SUMMARY_ENABLE = ENV.bool("CENTER_SUMMARY_ENABLE", default=True)
 
 # ------------------------------------------------------------------------------
 # Enable Open OnDemand integration
