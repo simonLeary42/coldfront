@@ -8,20 +8,17 @@ import logging
 
 from coldfront.core.project.models import ProjectUser
 from coldfront.core.utils.common import import_from_settings
+from coldfront.plugins.project_openldap.utils import remove_entry_from_openldap
 from coldfront.plugins.project_openldap.utils import (
-    add_members_to_openldap_project_posixgroup,
-    add_per_project_ou_to_openldap,
-    add_project_posixgroup_to_openldap,
-    allocate_project_openldap_gid,
-    archive_project_in_openldap,
+    add_members_to_openldap_posixgroup,
+    add_posixgroup_to_openldap,
+    remove_members_from_openldap_posixgroup,
+    update_posixgroup_description_in_openldap,
+)
+from coldfront.plugins.allocation_openldap.utils import (
+    allocate_allocation_openldap_gid,
     construct_dn_str,
-    construct_ou_dn_str,
-    construct_per_project_ou_relative_dn_str,
-    construct_project_ou_description,
-    construct_project_posixgroup_description,
-    remove_dn_from_openldap,
-    remove_members_from_openldap_project_posixgroup,
-    update_project_posixgroup_in_openldap,
+    construct_project_allocation_description,
 )
 
 # from coldfront.plugins.project_openldap.utils import
@@ -41,7 +38,7 @@ PROJECT_OPENLDAP_REMOVE_PROJECT = import_from_settings(
 PROJECT_OPENLDAP_ARCHIVE_OU = import_from_settings("PROJECT_OPENLDAP_ARCHIVE_OU")
 
 
-def add_project(project_obj):
+def add_allocation(project_obj):
     """Method to add project to OpenLDAP - uses signals for project creation"""
 
     # if project_code not enabled or None or empty, print appropriate message and bail out to avoid adding it to OpenLDAP
@@ -87,7 +84,7 @@ def add_project(project_obj):
 
 
 # Coldfront archive project action
-def remove_project(project_obj):
+def remove_allocation(project_obj):
     """Method to remove project from OpenLDAP OR place in archive - uses signals for Coldfront project archive action"""
 
     ou_dn = construct_ou_dn_str(project_obj)
@@ -110,7 +107,7 @@ def remove_project(project_obj):
         archive_project_in_openldap(ou_dn, relative_dn, PROJECT_OPENLDAP_ARCHIVE_OU)
 
 
-def update_project(project_obj):
+def update_allocation(project_obj):
     """Method to update project [title] in OpenLDAP - uses signals for project update"""
     dn = construct_dn_str(project_obj)
     logger.info(" ATTEMPTING PROJECT UPDATE IN TASKS.PY ")
@@ -121,7 +118,7 @@ def update_project(project_obj):
     update_project_posixgroup_in_openldap(dn, openldap_description)
 
 
-def add_user_project(project_user_pk):
+def add_user_allocation(project_user_pk):
     """Method to add a user to OpenLDAP project - uses signals"""
 
     final_user = ProjectUser.objects.get(pk=project_user_pk)
@@ -137,7 +134,7 @@ def add_user_project(project_user_pk):
     add_members_to_openldap_project_posixgroup(dn, list_memberuids)
 
 
-def remove_user_project(project_user_pk):
+def remove_user_allocation(project_user_pk):
     """Method to remove a user from OpenLDAP project - uses signals"""
 
     final_user = ProjectUser.objects.get(pk=project_user_pk)
