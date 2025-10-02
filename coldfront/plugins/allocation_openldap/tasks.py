@@ -43,18 +43,14 @@ def add_allocation(project_obj):
 
     # if project_code not enabled or None or empty, print appropriate message and bail out to avoid adding it to OpenLDAP
     if not hasattr(project_obj, "project_code"):
-        logger.info(
-            "Enable project_code to use the allocation_openldap plugin to add projects into OpenLDAP"
-        )
+        logger.info("Enable project_code to use the allocation_openldap plugin to add projects into OpenLDAP")
         logger.info(
             "Additional message - this issue was encountered with project pk %s",
             {project_obj.pk},
         )
         return None
     if project_obj.project_code in [None, ""]:
-        logger.WARNING(
-            "None or empty project_code value encountered, please run the project code management command"
-        )
+        logger.WARNING("None or empty project_code value encountered, please run the project code management command")
         logger.WARNING(
             "Additional message - this issue was encountered with project pk %s",
             {project_obj.pk},
@@ -101,9 +97,7 @@ def remove_allocation(project_obj):
     # ...otherwise if archive_ou is defined, archive in OpenLDAP
     else:
         relative_dn = construct_per_project_ou_relative_dn_str(project_obj)
-        logger.info(
-            f"Project OU {ou_dn} is going to be ARCHIVED in OpenLDAP at {PROJECT_OPENLDAP_ARCHIVE_OU}..."
-        )
+        logger.info(f"Project OU {ou_dn} is going to be ARCHIVED in OpenLDAP at {PROJECT_OPENLDAP_ARCHIVE_OU}...")
         archive_project_in_openldap(ou_dn, relative_dn, PROJECT_OPENLDAP_ARCHIVE_OU)
 
 

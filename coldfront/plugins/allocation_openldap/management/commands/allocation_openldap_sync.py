@@ -44,7 +44,7 @@ from coldfront.plugins.project_openldap.utils import (
     update_posixgroup_description_in_openldap,
 )
 from coldfront.plugins.project_openldap.management.commands.project_openldap_sync import (
-    Command as ProjectOpenLDAPCommand
+    Command as ProjectOpenLDAPCommand,
 )
 
 # NOTE: functions starting with 'local_' or 'handle_' are local to this script

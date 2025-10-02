@@ -53,6 +53,7 @@ server = Server(
 )
 logger = logging.getLogger(__name__)
 
+
 # Provides linear/contiguous GID allocations, using the project object's pk
 def allocate_allocation_openldap_gid(project_pk, PROJECT_OPENLDAP_GID_START):
     """Create a GID for use as gidNumber in the project's posixGroup"""
@@ -80,6 +81,7 @@ def construct_dn_str(project_obj):
     except Exception as exc_log:
         logger.info(exc_log)
         return None
+
 
 def construct_project_allocation_description(project_obj):
     """Create a description for a project's posixGroup"""
