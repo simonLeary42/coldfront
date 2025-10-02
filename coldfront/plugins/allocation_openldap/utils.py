@@ -7,13 +7,9 @@
 import logging
 import textwrap
 
-from ldap3 import MODIFY_ADD, MODIFY_DELETE, MODIFY_REPLACE, Connection, Server, Tls
+from ldap3 import Server, Tls
 
 from coldfront.core.utils.common import import_from_settings
-from coldfront.plugins.project_openldap.utils import (
-    openldap_connection,
-    add_members_to_openldap_posixgroup,
-)
 
 PROJECT_OPENLDAP_BIND_USER = import_from_settings("PROJECT_OPENLDAP_BIND_USER")
 PROJECT_OPENLDAP_BIND_PASSWORD = import_from_settings("PROJECT_OPENLDAP_BIND_PASSWORD")
@@ -67,15 +63,10 @@ def allocate_allocation_openldap_gid(project_pk, PROJECT_OPENLDAP_GID_START):
     return allocated_project_openldap_gid
 
 
-"""
-    Construction functions.
-"""
-
-
-def construct_dn_str(project_obj):
+def construct_dn_str(allocation_obj):
     """Create a distinguished name (dn) for a project posixgroup in a per project ou, in the projects ou"""
     try:
-        project_code_str = project_obj.project_code
+        project_code_str = allocation_obj.project_code
         dn = f"cn={project_code_str},ou={project_code_str},{PROJECT_OPENLDAP_OU}"
         return dn
     except Exception as exc_log:
@@ -83,29 +74,29 @@ def construct_dn_str(project_obj):
         return None
 
 
-def construct_project_allocation_description(project_obj):
+def construct_allocation_posixgroup_description(allocation_obj):
     """Create a description for a project's posixGroup"""
     try:
-        pi = project_obj.pi
+        pi = allocation_obj.pi
 
         # if title is too long shorten
-        if len(project_obj.title) > PROJECT_OPENLDAP_DESCRIPTION_TITLE_LENGTH:
+        if len(allocation_obj.title) > PROJECT_OPENLDAP_DESCRIPTION_TITLE_LENGTH:
             truncated_title = textwrap.shorten(
-                project_obj.title,
+                allocation_obj.title,
                 PROJECT_OPENLDAP_DESCRIPTION_TITLE_LENGTH,
                 placeholder="...",
             )
             title = truncated_title
         else:
-            title = project_obj.title
+            title = allocation_obj.title
 
         description = ""
 
         # if institution feature activated use in OpenLDAP description
-        if hasattr(project_obj, "institution"):
-            institution = project_obj.institution
+        if hasattr(allocation_obj, "institution"):
+            institution = allocation_obj.institution
             # set to NotDefined if empty
-            if project_obj.institution in [None, ""]:
+            if allocation_obj.institution in [None, ""]:
                 institution = "NotDefined"
             # setup description with institution var
             description = f"INSTITUTE: {institution} | PI: {pi} | TITLE: {title}"
