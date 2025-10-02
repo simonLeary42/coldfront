@@ -6,46 +6,41 @@
 
 import logging
 
-from django.core.management.base import BaseCommand, CommandError
-
+# from django.core.management.base import BaseCommand, CommandError
 from coldfront.core.project.models import (
-    Project,
+    # Project,
     ProjectStatusChoice,
-    ProjectUser,
+    # ProjectUser,
     ProjectUserStatusChoice,
 )
-# from coldfront.plugins.project_openldap.utils import
 
+# from coldfront.plugins.project_openldap.utils import
 # OpenLDAP (ldap3) connections formed in utils.py
 from coldfront.core.utils.common import import_from_settings
 
-# NEW or ACTIVE status projects not known to OpenLDAP at all can simply be added as normal, using tasks.py function
-# Normal deletion also handled by tasks.py method
-from coldfront.plugins.project_openldap.tasks import add_project, remove_project
-
 # this script relies HEAVILY on utils.py
-from coldfront.plugins.project_openldap.utils import (
-    add_members_to_openldap_posixgroup,
-    add_per_project_ou_to_openldap,
-    add_posixgroup_to_openldap,
-    allocate_project_openldap_gid,
-    archive_project_in_openldap,
-    construct_dn_archived_str,
-    construct_dn_str,
-    construct_ou_archived_dn_str,
-    construct_ou_dn_str,
-    construct_per_project_ou_relative_dn_str,
-    construct_project_ou_description,
-    construct_project_posixgroup_description,
-    ldapsearch_check_project_dn,
-    ldapsearch_get_description,
-    ldapsearch_get_posixGroup_memberuids,
-    remove_members_from_openldap_posixgroup,
-    update_posixgroup_description_in_openldap,
-)
+# from coldfront.plugins.project_openldap.utils import (
+#     add_members_to_openldap_posixgroup,
+#     add_per_project_ou_to_openldap,
+#     add_posixgroup_to_openldap,
+#     allocate_project_openldap_gid,
+#     archive_project_in_openldap,
+#     construct_dn_archived_str,
+#     construct_dn_str,
+#     construct_ou_dn_str,
+#     construct_allocation_posixgroup_description,
+#     ldapsearch_check_project_dn,
+#     ldapsearch_get_description,
+#     ldapsearch_get_posixGroup_memberuids,
+#     remove_members_from_openldap_posixgroup,
+#     update_posixgroup_description_in_openldap,
+# )
 from coldfront.plugins.project_openldap.management.commands.project_openldap_sync import (
     Command as ProjectOpenLDAPCommand,
 )
+
+# NEW or ACTIVE status projects not known to OpenLDAP at all can simply be added as normal, using tasks.py function
+# Normal deletion also handled by tasks.py method
 
 # NOTE: functions starting with 'local_' or 'handle_' are local to this script
 
