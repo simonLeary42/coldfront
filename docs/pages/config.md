@@ -284,6 +284,16 @@ exist in your backend LDAP to show up in the ColdFront user search.
 | LDAP_USER_SEARCH_CACERT_FILE  | Path to the CA cert file.             |
 | LDAP_USER_SEARCH_CERT_VALIDATE_MODE | Whether to require/validate certs.  If 'required', certs are required and validated.  If 'optional', certs are optional but validated if provided.  If 'none' (the default) certs are ignored. |
 
+#### Allocation OpenLDAP
+
+This plugin allows allocations to be synced to an OpenLDAP server.
+`plugin_openldap` must also be configured in order to use `allocation_openldap`.
+
+| Name                            | Description                                                |
+|:--------------------------------|:-----------------------------------------------------------|
+| `PLUGIN_ALLOCATION_OPENLDAP`    | Enable                                                     |
+| `ALLOCATION_OPENLDAP_GID_START` | Base offset for GIDNumbers for allocation LDAP posixGroups |
+
 ## Advanced Configuration
 
 ColdFront uses the [Django
