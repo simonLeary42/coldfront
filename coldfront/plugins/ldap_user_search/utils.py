@@ -93,10 +93,10 @@ class LDAPUserSearch(UserSearch):
             )
         elif user_search_string and search_by == "username_only":
             attr = self.USERNAME_ONLY_ATTR
-            filter = ldap.filter.filter_format(f"({self.ATTRIBUTE_MAP[attr]}=%s)", [user_search_string])
+            filter = ldap.filter.filter_format(f"({self.ATTRIBUTE_MAP[attr]}=*%s*)", [user_search_string])
             size_limit = 1
         elif user_search_string and search_by in self.ATTRIBUTE_MAP.keys():
-            filter = ldap.filter.filter_format(f"({self.ATTRIBUTE_MAP[search_by]}=%s)", [user_search_string])
+            filter = ldap.filter.filter_format(f"({self.ATTRIBUTE_MAP[search_by]}=*%s*)", [user_search_string])
             size_limit = 1
         else:
             filter = "(objectclass=person)"
