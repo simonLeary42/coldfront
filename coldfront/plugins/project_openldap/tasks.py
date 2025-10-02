@@ -9,9 +9,9 @@ import logging
 from coldfront.core.project.models import ProjectUser
 from coldfront.core.utils.common import import_from_settings
 from coldfront.plugins.project_openldap.utils import (
-    add_members_to_openldap_project_posixgroup,
+    add_members_to_openldap_posixgroup,
     add_per_project_ou_to_openldap,
-    add_project_posixgroup_to_openldap,
+    add_posixgroup_to_openldap,
     allocate_project_openldap_gid,
     archive_project_in_openldap,
     construct_dn_str,
@@ -20,8 +20,8 @@ from coldfront.plugins.project_openldap.utils import (
     construct_project_ou_description,
     construct_project_posixgroup_description,
     remove_dn_from_openldap,
-    remove_members_from_openldap_project_posixgroup,
-    update_project_posixgroup_in_openldap,
+    remove_members_from_openldap_posixgroup,
+    update_posixgroup_description_in_openldap,
 )
 
 # Setup logging
@@ -77,7 +77,7 @@ def add_project(project_obj):
         openldap_posixgroup_description,
     )
 
-    add_project_posixgroup_to_openldap(posixgroup_dn, openldap_posixgroup_description, gid_int)
+    add_posixgroup_to_openldap(posixgroup_dn, openldap_posixgroup_description, gid_int)
 
 
 # Coldfront archive project action
@@ -110,7 +110,7 @@ def update_project(project_obj):
 
     logger.info("Modifying OpenLDAP entry: %s", dn)
     logger.info("Modifying OpenLDAP with description: %s", openldap_description)
-    update_project_posixgroup_in_openldap(dn, openldap_description)
+    update_posixgroup_description_in_openldap(dn, openldap_description)
 
 
 def add_user_project(project_user_pk):
@@ -126,7 +126,7 @@ def add_user_project(project_user_pk):
 
     list_memberuids = []
     list_memberuids.append(final_user_username)
-    add_members_to_openldap_project_posixgroup(dn, list_memberuids)
+    add_members_to_openldap_posixgroup(dn, list_memberuids)
 
 
 def remove_user_project(project_user_pk):
@@ -142,4 +142,4 @@ def remove_user_project(project_user_pk):
 
     list_memberuids = []
     list_memberuids.append(final_user_username)
-    remove_members_from_openldap_project_posixgroup(dn, list_memberuids)
+    remove_members_from_openldap_posixgroup(dn, list_memberuids)
