@@ -110,6 +110,32 @@ class Command(ProjectOpenLDAPCommand):
             action="store_true",
         )
 
+    def handle_missing_allocation_in_openldap_new_active(self, allocation, sync=False):
+        pass
+
+    def handle_missing_allocation_in_openldap_archive(
+        self, allocation, allocation_dn, sync=False, write_to_archive=False
+    ):
+        pass
+
+    def handle_allocation_in_openldap_but_not_archive(
+        self, allocation, allocation_ou_dn, archive_dn, sync=False, write_to_archive=False
+    ):
+        pass
+
+    def handle_allocation_removal_if_needed(self, allocation, allocation_ou_dn, sync=False):
+        pass
+
+    def handle_description_update(
+        self,
+        allocation,
+        allocation_dn="",
+        archive_dn="",
+        sync=False,
+        write_to_archive=False,
+    ):
+        pass
+
     def handle(self, *args, **options):
         verbosity = int(options["verbosity"])
         root_logger = logging.getLogger("")
