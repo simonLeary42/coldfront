@@ -7,8 +7,9 @@
 import logging
 import textwrap
 
-from ldap3 import MODIFY_ADD, MODIFY_DELETE, MODIFY_REPLACE, Connection, Server, Tls
+from ldap3 import Connection, Server, Tls
 
+from coldfront.core.utils import ldap
 from coldfront.core.utils.common import import_from_settings
 
 PROJECT_OPENLDAP_BIND_USER = import_from_settings("PROJECT_OPENLDAP_BIND_USER")
@@ -50,6 +51,24 @@ server = Server(
 logger = logging.getLogger(__name__)
 
 
+def _wrapper_ldap_write(func, *args, **kwargs) -> None:
+    """
+    add a keyword argument `write` which will cause the function to be skipped entirely
+    open an LDAP connection, add it as 1st positional argument, run function, then close LDAP connection
+    """
+    if not kwargs.pop("write", True):
+        logger.info("write is false, nothing doing...", stack_info=True, extra=dict(args=args, kwargs=kwargs))
+        return None
+    with ldap.connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD) as conn:
+        return func(conn, *args, **kwargs)
+
+
+def _wrapper_ldap_read(func, *args, **kwargs):
+    """open an LDAP connection, add it as 1st positional argument, run function, then close LDAP connection"""
+    with ldap.connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD) as conn:
+        return func(conn, *args, **kwargs)
+
+
 def openldap_connection(server_opt, bind_user, bind_password):
     """Open connection to OpenLDAP"""
     try:
@@ -62,233 +81,69 @@ def openldap_connection(server_opt, bind_user, bind_password):
 
 def add_members_to_openldap_project_posixgroup(dn, list_memberuids, write=True):
     """Add members to a posixgroup in OpenLDAP"""
-    member_uid = tuple(list_memberuids)
-    conn = openldap_connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD)
-
-    if not conn:
-        return
-
-    if not write:
-        return None
-
-    try:
-        for user in member_uid:
-            add_username = user
-            conn.modify(dn, {"memberUid": [(MODIFY_ADD, [add_username])]})
-    except Exception as exc_log:
-        logger.info(exc_log)
-    finally:
-        conn.unbind()
+    return _wrapper_ldap_write(ldap.add_attribute_values, dn, "memberUid", list_memberuids, write=write)
 
 
 def remove_members_from_openldap_project_posixgroup(dn, list_memberuids, write=True):
     """Remove members from a posixgroup in OpenLDAP"""
-    member_uids_tuple = tuple(list_memberuids)
-    conn = openldap_connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD)
-
-    if not conn:
-        return
-
-    if not write:
-        return None
-
-    try:
-        for user in member_uids_tuple:
-            remove_username = user
-            conn.modify(dn, {"memberUid": [(MODIFY_DELETE, [remove_username])]})
-    except Exception as exc_log:
-        logger.info(exc_log)
-    finally:
-        conn.unbind()
+    return _wrapper_ldap_write(ldap.delete_attribute_values, dn, "memberUid", list_memberuids, write=write)
 
 
 def add_per_project_ou_to_openldap(project_obj, dn, openldap_ou_description, write=True):
     """Add a per project OU to OpenLDAP - write an OU for a project"""
-    conn = openldap_connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD)
-
-    if not conn:
-        return
-
-    if not write:
-        return None
-
-    # project code is used for ou, other components were supplied from construction methods to this function
-    try:
-        project_code_str = project_obj.project_code
-        ou = f"{project_code_str}"
-        conn.add(
-            dn,
-            ["top", "organizationalUnit"],
-            {"ou": ou, "description": openldap_ou_description},
-        )
-    except Exception as exc_log:
-        logger.error("Project OU: DN to write...")
-        logger.error(f"dn - {dn}")
-        logger.error("Attributes to write...")
-        logger.error(f"OU description - {openldap_ou_description}")
-        logger.error(exc_log)
-    finally:
-        conn.unbind()
+    return _wrapper_ldap_write(
+        ldap.create_entry,
+        dn,
+        ["top", "organizationalUnit"],
+        {"ou": project_obj.project_code, "description": openldap_ou_description},
+        write=write,
+    )
 
 
 def add_project_posixgroup_to_openldap(dn, openldap_description, gid_int, write=True):
     """Add a project to OpenLDAP - write a posixGroup"""
-    conn = openldap_connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD)
-
-    if not conn:
-        return
-
-    if not write:
-        return None
-
-    try:
-        conn.add(
-            dn,
-            "posixGroup",
-            {"description": openldap_description, "gidNumber": gid_int},
-        )
-    except Exception as exc_log:
-        logger.error("Project posixgroup: DN to write...")
-        logger.error(f"dn - {dn}")
-        logger.error("Attributes to write...")
-        logger.error(f"posixGroup description - {openldap_description} gidNumber - {gid_int}")
-        logger.error(exc_log)
-    finally:
-        conn.unbind()
+    return _wrapper_ldap_write(
+        ldap.create_entry, dn, "posixGroup", {"description": openldap_description, "gidNumber": gid_int}, write=write
+    )
 
 
 # Remove a DN - e.g. DELETE a project OU or posixgroup in OpenLDAP
 def remove_dn_from_openldap(dn, write=True):
     """Remove a project from OpenLDAP - delete a posixGroup"""
-    conn = openldap_connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD)
-
-    if not conn:
-        return
-
-    if not write:
-        return None
-
-    try:
-        conn.delete(dn)
-        conn.unbind()
-        conn = openldap_connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD)
-    except Exception as exc_log:
-        logger.info(exc_log)
-    finally:
-        conn.unbind()
+    return _wrapper_ldap_write(ldap.delete_entry, dn, write=write)
 
 
 # Update the project title in OpenLDAP
 def update_project_posixgroup_in_openldap(dn, openldap_description, write=True):
     """Update the description of a posixGroup in OpenLDAP"""
-    conn = openldap_connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD)
-
-    if not conn:
-        return
-
-    if not write:
-        return None
-
-    try:
-        conn.modify(dn, {"description": [(MODIFY_REPLACE, [openldap_description])]})
-        conn.unbind()
-    except Exception as exc_log:
-        logger.info(exc_log)
-    finally:
-        conn.unbind()
+    return _wrapper_ldap_write(ldap.overwrite_attribute_values, dn, "description", openldap_description, write=write)
 
 
 # MOVE the project to an archive OU - defined as env var
 def archive_project_in_openldap(current_dn, relative_dn, archive_ou, write=True):
     """Move a project to the archive OU in OpenLDAP"""
-    conn = openldap_connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD)
-
-    if not conn:
-        return
-
-    if not write:
-        return None
-
-    try:
-        conn.modify_dn(current_dn, relative_dn, new_superior=archive_ou)
-        conn.unbind()
-    except Exception as exc_log:
-        logger.info(exc_log)
-    finally:
-        conn.unbind()
+    return _wrapper_ldap_write(ldap.move_entry, current_dn, relative_dn, archive_ou, write=write)
 
 
 def ldapsearch_check_project_dn(dn):
     """Check a distinguished name exists and represents a project (posixGroup)"""
-    conn = openldap_connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD)
-
-    if not conn:
-        return
-
-    try:
-        ldapsearch_check_project_dn_result = conn.search(dn, "(objectclass=posixGroup)")
-        return ldapsearch_check_project_dn_result
-    except Exception as exc_log:
-        logger.info(exc_log)
-        return None
-    finally:
-        conn.unbind()
+    return _wrapper_ldap_read(ldap.search, dn, "(objectclass=posixGroup)")
 
 
 # check bind user can see the Project OU or Archive OU - is also used in system setup check script
 def ldapsearch_check_project_ou(OU):
     """Test that ldapsearch can see an OU"""
-    conn = openldap_connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD)
-
-    if not conn:
-        return
-
-    try:
-        ldapsearch_check_project_ou_result = conn.search(OU, "(objectclass=organizationalUnit)")
-        return ldapsearch_check_project_ou_result
-    except Exception as exc_log:
-        logger.info(exc_log)
-        return None
-    finally:
-        conn.unbind()
+    return _wrapper_ldap_read(ldap.search, OU, "(objectclass=organizationalUnit)")
 
 
 def ldapsearch_get_project_memberuids(dn):
     """Get memberUids from a project's posixGroup"""
-    conn = openldap_connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD)
-
-    if not conn:
-        return
-
-    try:
-        conn.search(dn, "(objectclass=posixGroup)", attributes=["memberUid"])
-        ldapsearch_project_memberuids_entries = conn.entries
-        return ldapsearch_project_memberuids_entries
-    except Exception as exc_log:
-        logger.info(exc_log)
-        return None
-    finally:
-        conn.unbind()
+    return _wrapper_ldap_read(ldap.search, dn, "(objectclass=posixGroup)", attributes=["memberUid"])
 
 
 def ldapsearch_get_project_description(dn):
     """Get description from a project's posixGroup"""
-    conn = openldap_connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD)
-
-    if not conn:
-        return
-
-    try:
-        conn.search(dn, "(objectclass=posixGroup)", attributes=["description"])
-        ldapsearch_project_description_entries = conn.entries
-        # list with single entry, get description
-        ldapsearch_project_description = ldapsearch_project_description_entries[0].description
-        return ldapsearch_project_description
-    except Exception as exc_log:
-        logger.info(exc_log)
-        return None
-    finally:
-        conn.unbind()
+    return _wrapper_ldap_read(ldap.search, dn, "(objectclass=posixGroup)", attributes=["description"])
 
 
 """
