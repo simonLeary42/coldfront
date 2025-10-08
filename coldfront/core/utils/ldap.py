@@ -2,6 +2,7 @@ import logging
 from functools import wraps
 
 from ldap3 import MODIFY_ADD, MODIFY_DELETE, MODIFY_REPLACE, Connection
+from ldap3.core.exceptions import LDAPException
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ def _clear_conn_result_first(func):
 def _noop_if_values_nonlist_or_empty(func):
     @wraps(func)
     def wrapper(conn: Connection, dn: str, attribute_name: str, values, controls=None) -> None:
-        if isinstance(values, list) and (len(values) == 0):
+        if isinstance(values, list) and (len(values) > 0):
             func(conn, dn, attribute_name, values, controls=None)
         logger.error(
             "values is a non-list or an empty list, nothing doing...",
@@ -38,7 +39,7 @@ def _noop_if_conn_none(func):
     @wraps(func)
     def wrapper(conn: Connection, *args, **kwargs) -> None:
         if conn is not None:
-            func(conn * args, **kwargs)
+            func(conn, *args, **kwargs)
         logger.error("conn is None, nothing doing...", stack_info=True, extra=dict(args=args, kwargs=kwargs))
 
     return wrapper
@@ -47,7 +48,10 @@ def _noop_if_conn_none(func):
 def _log_ldap_errors(func):
     @wraps(func)
     def wrapper(conn: Connection, *args, **kwargs) -> None:
-        func(conn, *args, **kwargs)
+        try:
+            func(conn, *args, **kwargs)
+        except LDAPException:
+            logger.exception("LDAP operation raised an exception!", exc_info=True)
         if conn.result["result"] != 0:
             logger.error(f"LDAP operation failed! {conn.result}", stack_info=True)
 
