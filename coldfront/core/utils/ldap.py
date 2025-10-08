@@ -6,6 +6,20 @@ from ldap3 import MODIFY_ADD, MODIFY_DELETE, MODIFY_REPLACE, Connection
 logger = logging.getLogger(__name__)
 
 
+def _clear_conn_result_first(func):
+    """
+    because this function may or may not run, it is important that we clean up from the last function
+    this ensures that if conn.result is not None, then conn.result was actuallycreated by this function
+    """
+
+    @wraps(func)
+    def wrapper(conn: Connection, *args, **kwargs) -> None:
+        conn.result = None
+        func(conn, *args, **kwargs)
+
+    return wrapper
+
+
 def _noop_if_values_nonlist_or_empty(func):
     @wraps(func)
     def wrapper(conn: Connection, dn: str, attribute_name: str, values, controls=None) -> None:
@@ -40,6 +54,7 @@ def _log_ldap_errors(func):
     return wrapper
 
 
+@_clear_conn_result_first
 @_noop_if_values_nonlist_or_empty
 @_noop_if_conn_none
 @_log_ldap_errors
@@ -47,6 +62,7 @@ def add_attribute_values(conn: Connection, dn: str, attribute_name: str, values,
     conn.modify(dn, {attribute_name: [MODIFY_ADD, values]}, controls=controls)
 
 
+@_clear_conn_result_first
 @_noop_if_values_nonlist_or_empty
 @_noop_if_conn_none
 @_log_ldap_errors
@@ -54,6 +70,7 @@ def overwrite_attribute_values(conn: Connection, dn: str, attribute_name: str, v
     conn.modify(dn, {attribute_name: [MODIFY_REPLACE, values]}, controls=controls)
 
 
+@_clear_conn_result_first
 @_noop_if_values_nonlist_or_empty
 @_noop_if_conn_none
 @_log_ldap_errors
@@ -61,19 +78,29 @@ def delete_attribute_values(conn: Connection, dn: str, attribute_name: str, valu
     conn.modify(dn, {attribute_name: [MODIFY_DELETE, values]}, controls=controls)
 
 
+@_clear_conn_result_first
 @_noop_if_conn_none
 @_log_ldap_errors
 def create_entry(conn: Connection, dn: str, object_class: list, attributes: dict, controls=None) -> None:
     conn.add(dn, object_class=object_class, attributes=attributes, controls=controls)
 
 
+@_clear_conn_result_first
 @_noop_if_conn_none
 @_log_ldap_errors
 def move_entry(conn: Connection, dn: str, rdn: str, destination_ou_dn: str) -> None:
     conn.modify_dn(dn, rdn, new_superior=destination_ou_dn)
 
 
+@_clear_conn_result_first
 @_noop_if_conn_none
 @_log_ldap_errors
 def delete_entry(conn: Connection, dn: str, controls=None) -> None:
     conn.delete(dn, controls=controls)
+
+
+@_clear_conn_result_first
+@_noop_if_conn_none
+@_log_ldap_errors
+def search(conn, *args, **kwargs) -> None:
+    conn.search(*args, **kwargs)
