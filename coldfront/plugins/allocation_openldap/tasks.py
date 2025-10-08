@@ -8,17 +8,18 @@ import logging
 
 from coldfront.core.project.models import ProjectUser
 from coldfront.core.utils.common import import_from_settings
-from coldfront.plugins.project_openldap.utils import remove_entry_from_openldap
-from coldfront.plugins.project_openldap.utils import (
-    add_members_to_openldap_posixgroup,
-    add_posixgroup_to_openldap,
-    remove_members_from_openldap_posixgroup,
-    update_posixgroup_description_in_openldap,
-)
 from coldfront.plugins.allocation_openldap.utils import (
     allocate_allocation_openldap_gid,
     construct_dn_str,
-    construct_project_allocation_description,
+    construct_relative_dn_str,
+)
+
+# from coldfront.plugins.project_openldap.utils import remove_entry_from_openldap
+from coldfront.plugins.project_openldap.utils import (
+    # add_members_to_openldap_posixgroup,
+    add_posixgroup_to_openldap,
+    # remove_members_from_openldap_posixgroup,
+    # update_posixgroup_description_in_openldap,
 )
 
 # from coldfront.plugins.project_openldap.utils import
@@ -58,16 +59,15 @@ def add_allocation(project_obj):
         return None
 
     # 1) first make the OU for the project
-    openldap_ou_description = construct_project_ou_description(project_obj)
-    ou_dn = construct_ou_dn_str(project_obj)
+    ou_dn = construct_dn_str(project_obj)
     logger.info("Adding OpenLDAP project OU entry - DN: %s", ou_dn)
 
-    add_per_project_ou_to_openldap(project_obj, ou_dn, openldap_ou_description)
+    add_posixgroup_to_openldap(project_obj, ou_dn, openldap_ou_description)
 
     # 2) then make the posixgroup
     posixgroup_dn = construct_dn_str(project_obj)
-    gid_int = allocate_project_openldap_gid(project_obj.pk, PROJECT_OPENLDAP_GID_START)
-    openldap_posixgroup_description = construct_project_posixgroup_description(project_obj)
+    gid_int = allocate_allocation_openldap_gid(project_obj.pk, PROJECT_OPENLDAP_GID_START)
+    openldap_posixgroup_description = None  # FIXME
 
     logger.info("Adding OpenLDAP project posixgroup entry - DN: %s", posixgroup_dn)
     logger.info("Adding OpenLDAP project posixgroup entry - GID: %s", gid_int)
@@ -76,14 +76,14 @@ def add_allocation(project_obj):
         openldap_posixgroup_description,
     )
 
-    add_project_posixgroup_to_openldap(posixgroup_dn, openldap_posixgroup_description, gid_int)
+    add_posixgroup_to_openldap(posixgroup_dn, openldap_posixgroup_description, gid_int)
 
 
 # Coldfront archive project action
 def remove_allocation(project_obj):
     """Method to remove project from OpenLDAP OR place in archive - uses signals for Coldfront project archive action"""
 
-    ou_dn = construct_ou_dn_str(project_obj)
+    ou_dn = construct_dn_str(project_obj)
 
     # if remove project (default: true) and no archive_ou defined, then remove from OpenLDAP...
     if PROJECT_OPENLDAP_REMOVE_PROJECT and not PROJECT_OPENLDAP_ARCHIVE_OU:
@@ -96,7 +96,7 @@ def remove_allocation(project_obj):
         remove_dn_from_openldap(ou_dn)
     # ...otherwise if archive_ou is defined, archive in OpenLDAP
     else:
-        relative_dn = construct_per_project_ou_relative_dn_str(project_obj)
+        relative_dn = construct_relative_dn_str(project_obj)
         logger.info(f"Project OU {ou_dn} is going to be ARCHIVED in OpenLDAP at {PROJECT_OPENLDAP_ARCHIVE_OU}...")
         archive_project_in_openldap(ou_dn, relative_dn, PROJECT_OPENLDAP_ARCHIVE_OU)
 

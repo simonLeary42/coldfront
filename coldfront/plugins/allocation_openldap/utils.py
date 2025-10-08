@@ -5,9 +5,9 @@
 """Coldfront allocation_openldap plugin utils.py"""
 
 import logging
-import textwrap
+from contextlib import contextmanager
 
-from ldap3 import Server, Tls
+from ldap3 import ALL, Connection, Server, Tls
 
 from coldfront.core.utils.common import import_from_settings
 
@@ -25,7 +25,7 @@ PROJECT_OPENLDAP_CERT_FILE = import_from_settings("PROJECT_OPENLDAP_CERT_FILE")
 PROJECT_OPENLDAP_CACERT_FILE = import_from_settings("PROJECT_OPENLDAP_CACERT_FILE")
 PROJECT_OPENLDAP_ARCHIVE_OU = import_from_settings("PROJECT_OPENLDAP_ARCHIVE_OU")
 
-PROJECT_OPENLDAP_DESCRIPTION_TITLE_LENGTH = import_from_settings("PROJECT_OPENLDAP_DESCRIPTION_TITLE_LENGTH")
+ALLOCATION_OPENLDAP_DESCRIPTION_TITLE_LENGTH = import_from_settings("PROJECT_OPENLDAP_DESCRIPTION_TITLE_LENGTH")
 
 # provide a sensible default locally to stop the openldap description being too long
 MAX_OPENLDAP_DESCRIPTION_LENGTH = 250
@@ -48,6 +48,51 @@ server = Server(
     tls=tls,
 )
 logger = logging.getLogger(__name__)
+
+# add_members_to_openldap_posixgroup
+# add_per_project_ou_to_openldap
+# add_posixgroup_to_openldap
+# move_dn_in_openldap
+# openldap_connection
+# remove_dn_from_openldap
+# remove_members_from_openldap_posixgroup
+# update_posixgroup_description_in_openldap
+# ldapsearch_check_project_dn
+# ldapsearch_check_ou
+# ldapsearch_get_posixgroup_memberuids
+# ldapsearch_get_description
+
+
+@contextmanager
+def _ldap_connection():
+    """
+    Context manager to create and destroy an LDAP connection.
+
+    :param server_uri: URI of the LDAP server, e.g., 'ldap://localhost'
+    :param user_dn: Distinguished Name (DN) of the user to bind as
+    :param password: Password for the user
+    :param auto_bind: Whether to auto-bind upon connection creation
+    """
+    server = Server(server_uri, get_info=ALL)
+    conn = Connection(server, user=user_dn, password=password, auto_bind=auto_bind)
+    try:
+        yield conn
+    finally:
+        conn.unbind()
+
+
+@contextmanager
+def openldap_connection(server_uri, use_ssl, connect_timeout, tls, bind_user, bind_password):
+    server = Server(server_uri, use_ssl=use_ssl, connect_timeout=connect_timeout, tls=tls)
+    try:
+        connection = Connection(server, user=bind_user, password=bind_password, auto_bind=True)
+        yield connection
+    except Exception as e:
+        logger.error("Could not connect to OpenLDAP server: %s", e)
+        yield None
+    finally:
+        if "connection" in locals() and connection.bound:
+            connection.unbind()
 
 
 # Provides linear/contiguous GID allocations, using the project object's pk
@@ -74,41 +119,22 @@ def construct_dn_str(allocation_obj):
         return None
 
 
-def construct_allocation_posixgroup_description(allocation_obj):
-    """Create a description for a project's posixGroup"""
+def construct_relative_dn_str(allocation_obj):
+    """Create a relative distinguished name (rdn) for an allocation posixgroup - required when moving this object to a new superior"""
     try:
-        pi = allocation_obj.pi
+        project_code_str = allocation_obj.project_code
+        relative_dn = f"ou={project_code_str}"
+        return relative_dn
+    except Exception as exc_log:
+        logger.info(exc_log)
+        return None
 
-        # if title is too long shorten
-        if len(allocation_obj.title) > PROJECT_OPENLDAP_DESCRIPTION_TITLE_LENGTH:
-            truncated_title = textwrap.shorten(
-                allocation_obj.title,
-                PROJECT_OPENLDAP_DESCRIPTION_TITLE_LENGTH,
-                placeholder="...",
-            )
-            title = truncated_title
-        else:
-            title = allocation_obj.title
 
-        description = ""
-
-        # if institution feature activated use in OpenLDAP description
-        if hasattr(allocation_obj, "institution"):
-            institution = allocation_obj.institution
-            # set to NotDefined if empty
-            if allocation_obj.institution in [None, ""]:
-                institution = "NotDefined"
-            # setup description with institution var
-            description = f"INSTITUTE: {institution} | PI: {pi} | TITLE: {title}"
-        else:
-            # setup description without institution var
-            description = f"PI: {pi} | TITLE: {title}"
-
-        # also deal with the combined  description field, if it gets too long
-        if len(description) > MAX_OPENLDAP_DESCRIPTION_LENGTH:
-            truncated_description = textwrap.shorten(description, MAX_OPENLDAP_DESCRIPTION_LENGTH, placeholder="...")
-            description = truncated_description
-
+def construct_description(allocation_obj):
+    """Create a description for an allocation posixgroup"""
+    try:
+        project_code_str = allocation_obj.project_code
+        description = f"OU for project {project_code_str}"
         return description
     except Exception as exc_log:
         logger.info(exc_log)
