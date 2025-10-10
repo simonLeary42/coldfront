@@ -64,5 +64,19 @@ def get_user_resources(user_obj):
     return resources
 
 
+def generate_allocation_code(allocation_code: str, allocation_pk: int, padding: int = 0) -> str:
+    """
+    Generate a formatted allocation code by combining an uppercased user-defined allocation code,
+    allocation primary key and requested padding value (default = 0).
+
+    :param allocation_code: The base allocation code, set through the ALLOCATION_CODE configuration variable.
+    :param allocation_pk: The primary key of the allocation.
+    :param padding: The number of digits to pad the primary key with, set through the ALLOCATION_CODE_PADDING configuration variable.
+    :return: A formatted allocation code string.
+    """
+
+    return f"{allocation_code.upper()}{str(allocation_pk).zfill(padding)}"
+
+
 def test_allocation_function(allocation_pk):
     print("test_allocation_function", allocation_pk)

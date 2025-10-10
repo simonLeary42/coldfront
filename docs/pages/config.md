@@ -109,6 +109,9 @@ The following settings are ColdFront specific settings related to the core appli
 | PROJECT_CODE                                 | Specifies a custom internal project identifier. Default False, provide string value to enable. Must be no longer than 10 - PROJECT_CODE_PADDING characters in length.|  
 | PROJECT_CODE_PADDING                         | Defines a optional padding value to be added before the Primary Key section of PROJECT_CODE. Default False, provide integer value to enable.|
 | PROJECT_INSTITUTION_EMAIL_MAP                | Defines a dictionary where PI domain email addresses are keys and their corresponding institutions are values. Default is False, provide key-value pairs to enable this feature.|  
+| `ALLOCATION`                           | Specifies a custom internal allocation identifier. Default False, provide string value to enable. Must be no longer than 10 - `ALLOCATION_CODE_PADDING` characters in length.|  
+| `ALLOCATION_CODE_PADDING`              | Defines a optional padding value to be added before the Primary Key section of `ALLOCATION_CODE`. Default False, provide integer value to enable.|
+| `ALLOCATION_INSTITUTION_EMAIL_MAP`     | Defines a dictionary where PI domain email addresses are keys and their corresponding institutions are values. Default is False, provide key-value pairs to enable this feature.|  
 ### Database settings
 
 The following settings configure the database server to use, if not set will default to using SQLite:

@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from ldap3 import ALL, Connection, Server, Tls
 
 from coldfront.core.utils.common import import_from_settings
+from coldfront.core.allocation.models import Allocation
 
 PROJECT_OPENLDAP_BIND_USER = import_from_settings("PROJECT_OPENLDAP_BIND_USER")
 PROJECT_OPENLDAP_BIND_PASSWORD = import_from_settings("PROJECT_OPENLDAP_BIND_PASSWORD")
@@ -108,15 +109,9 @@ def allocate_allocation_openldap_gid(project_pk, PROJECT_OPENLDAP_GID_START):
     return allocated_project_openldap_gid
 
 
-def construct_dn_str(allocation_obj):
+def construct_dn_str(allocation_obj: Allocation):
     """Create a distinguished name (dn) for a project posixgroup in a per project ou, in the projects ou"""
-    try:
-        project_code_str = allocation_obj.project_code
-        dn = f"cn={project_code_str},ou={project_code_str},{PROJECT_OPENLDAP_OU}"
-        return dn
-    except Exception as exc_log:
-        logger.info(exc_log)
-        return None
+    return f"cn={allocation_obj.resources},ou={allocation_obj.project.project_code},{PROJECT_OPENLDAP_OU}"
 
 
 def construct_relative_dn_str(allocation_obj):
@@ -130,11 +125,11 @@ def construct_relative_dn_str(allocation_obj):
         return None
 
 
-def construct_description(allocation_obj):
+def construct_description(allocation_obj: Allocation):
     """Create a description for an allocation posixgroup"""
     try:
-        project_code_str = allocation_obj.project_code
-        description = f"OU for project {project_code_str}"
+        project_code_str = allocation_obj.project.
+        description = f"OU for project {aproject_code_str}"
         return description
     except Exception as exc_log:
         logger.info(exc_log)

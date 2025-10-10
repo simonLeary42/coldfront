@@ -66,7 +66,11 @@ from coldfront.core.allocation.signals import (
     allocation_new,
     allocation_remove_user,
 )
-from coldfront.core.allocation.utils import generate_guauge_data_from_usage, get_user_resources
+from coldfront.core.allocation.utils import (
+    generate_allocation_code,
+    generate_guauge_data_from_usage,
+    get_user_resources,
+)
 from coldfront.core.project.models import Project, ProjectPermission, ProjectUser, ProjectUserStatusChoice
 from coldfront.core.resource.models import Resource
 from coldfront.core.utils.common import get_domain_url, import_from_settings
@@ -83,6 +87,8 @@ ALLOCATION_DEFAULT_ALLOCATION_LENGTH = import_from_settings("ALLOCATION_DEFAULT_
 ALLOCATION_ENABLE_CHANGE_REQUESTS_BY_DEFAULT = import_from_settings(
     "ALLOCATION_ENABLE_CHANGE_REQUESTS_BY_DEFAULT", True
 )
+ALLOCATION_CODE = import_from_settings("ALLOCATION_CODE")
+ALLOCATION_CODE_PADDING = import_from_settings("ALLOCATION_CODE_PADDING")
 
 PROJECT_ENABLE_PROJECT_REVIEW = import_from_settings("PROJECT_ENABLE_PROJECT_REVIEW", False)
 INVOICE_ENABLED = import_from_settings("INVOICE_ENABLED", False)
@@ -712,6 +718,16 @@ class AllocationCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         allocation_obj = Allocation.objects.create(
             project=project_obj, justification=justification, quantity=quantity, status=allocation_status_obj
         )
+
+        if ALLOCATION_CODE:
+            """
+            Set the allocation_code attribute, if ALLOCATION_CODE is defined. 
+            If ALLOCATION_CODE_PADDING is defined, the set amount of padding will be added to ALLOCATION_CODE.
+            """
+            allocation_obj.allocation_code = generate_allocation_code(
+                ALLOCATION_CODE, allocation_obj.pk, ALLOCATION_CODE_PADDING or 0
+            )
+            allocation_obj.save(update_fields=["allocation_code"])
 
         if ALLOCATION_ENABLE_CHANGE_REQUESTS_BY_DEFAULT:
             allocation_obj.is_changeable = True

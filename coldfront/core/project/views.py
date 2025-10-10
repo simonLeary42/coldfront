@@ -594,7 +594,7 @@ class ProjectCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
         if PROJECT_CODE:
             """
-            Set the ProjectCode object, if PROJECT_CODE is defined. 
+            Set the project_code attribute, if PROJECT_CODE is defined. 
             If PROJECT_CODE_PADDING is defined, the set amount of padding will be added to PROJECT_CODE.
             """
             project_obj.project_code = generate_project_code(PROJECT_CODE, project_obj.pk, PROJECT_CODE_PADDING or 0)

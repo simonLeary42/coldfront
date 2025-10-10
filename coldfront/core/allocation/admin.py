@@ -24,6 +24,9 @@ from coldfront.core.allocation.models import (
     AllocationUserStatusChoice,
     AttributeType,
 )
+from coldfront.core.utils.common import import_from_settings
+
+ALLOCATION_CODE = import_from_settings("ALLOCATION_CODE", False)
 
 
 @admin.register(AllocationStatusChoice)
@@ -152,6 +155,17 @@ class AllocationAdmin(SimpleHistoryAdmin):
                 instance.save()
         else:
             formset.save()
+
+    def get_list_display(self, request):
+        if not (ALLOCATION_CODE):
+            return self.list_display
+
+        list_display = list(self.list_display)
+
+        if ALLOCATION_CODE:
+            list_display.insert(1, "allocation_code")
+
+        return tuple(list_display)
 
 
 @admin.register(AttributeType)

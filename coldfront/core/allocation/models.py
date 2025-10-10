@@ -102,6 +102,7 @@ class Allocation(TimeStampedModel):
     is_locked = models.BooleanField(default=False)
     is_changeable = models.BooleanField(default=False)
     history = HistoricalRecords()
+    allocation_code = models.CharField(max_length=10, blank=True)
 
     def clean(self):
         """Validates the allocation and raises errors if the allocation is invalid."""

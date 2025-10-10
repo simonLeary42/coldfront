@@ -49,6 +49,12 @@ Allocation Detail
       {% csrf_token %}
       <div class="table-responsive">
         <table class="table table-bordered table-sm">
+          {% if allocation.allocation_code %}
+          <tr>
+            <th scope="row" class="text-nowrap">Allocation Code:</th>
+            <td><a href="{% url 'allocation-detail' allocation.pk %}">{{ allocation.allocation_code }}</a></td>
+          </tr>
+          {% endif %}
           <tr>
             <th scope="row" class="text-nowrap">Project:</th>
             <td><a href="{% url 'project-detail' allocation.project.pk %}">{{ allocation.project }}</a></td>
