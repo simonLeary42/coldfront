@@ -884,6 +884,8 @@ class AllocationAddUsersView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
         else:
             for error in formset.errors:
                 messages.error(request, error)
+            for error in formset.non_form_errors():
+                messages.error(request, error)
 
         return redirect(allocation_obj)
 
@@ -986,6 +988,8 @@ class AllocationRemoveUsersView(LoginRequiredMixin, UserPassesTestMixin, Templat
             messages.success(request, f"Removed {remove_users_count} {user_plural} from allocation.")
         else:
             for error in formset.errors:
+                messages.error(request, error)
+            for error in formset.non_form_errors():
                 messages.error(request, error)
 
         return redirect(allocation_obj)
@@ -1092,6 +1096,8 @@ class AllocationAttributeDeleteView(LoginRequiredMixin, UserPassesTestMixin, Tem
             messages.success(request, f"Deleted {attributes_deleted_count} attributes from allocation.")
         else:
             for error in formset.errors:
+                messages.error(request, error)
+            for error in formset.non_form_errors():
                 messages.error(request, error)
 
         return redirect(allocation_obj)
@@ -1300,6 +1306,8 @@ class AllocationRenewView(LoginRequiredMixin, UserPassesTestMixin, TemplateView)
         else:
             if not formset.is_valid():
                 for error in formset.errors:
+                    messages.error(request, error)
+                for error in formset.non_form_errors():
                     messages.error(request, error)
         return redirect(allocation_obj.project)
 
@@ -1558,6 +1566,8 @@ class AllocationDeleteInvoiceNoteView(LoginRequiredMixin, UserPassesTestMixin, T
         else:
             for error in formset.errors:
                 messages.error(request, error)
+            for error in formset.non_form_errors():
+                messages.error(request, error)
 
         return HttpResponseRedirect(reverse_lazy("allocation-invoice-detail", kwargs={"pk": allocation_obj.pk}))
 
@@ -1772,6 +1782,8 @@ class AllocationChangeDetailView(LoginRequiredMixin, UserPassesTestMixin, FormVi
 
         if not allocation_change_form.is_valid() or (allocation_attributes_to_change and not formset.is_valid()):
             for error in allocation_change_form.errors:
+                messages.error(request, error)
+            for error in formset.non_form_errors():
                 messages.error(request, error)
             if allocation_attributes_to_change:
                 attribute_errors = ""
@@ -1995,6 +2007,8 @@ class AllocationChangeView(LoginRequiredMixin, UserPassesTestMixin, FormView):
                 attribute_errors = ""
                 for error in form.errors:
                     messages.error(request, error)
+                for error in formset.non_form_errors():
+                    messages.error(request, error)
                 for error in formset.errors:
                     if error:
                         attribute_errors += error.get("__all__")
@@ -2141,6 +2155,8 @@ class AllocationAttributeEditView(LoginRequiredMixin, UserPassesTestMixin, FormV
                 if error:
                     attribute_errors += error.get("__all__")
             messages.error(request, attribute_errors)
+            for error in formset.non_form_errors():
+                messages.error(request, error)
             error_redirect = HttpResponseRedirect(reverse("allocation-attribute-edit", kwargs={"pk": pk}))
             return error_redirect
 
