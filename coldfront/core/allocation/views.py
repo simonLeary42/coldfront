@@ -1695,6 +1695,12 @@ class AllocationAccountListView(LoginRequiredMixin, UserPassesTestMixin, ListVie
 
 
 class AllocationChangeDetailView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+    """
+    Allows a superuser to approve or deny an AllocationChangeRequest
+    Allows a superuser to update the end_date_extension or notes of an AllocationChangeRequest
+    See AllocationAttributeEditView for updating an AllocationChangeRequest's AllocationAttributeChangeRequest
+    """
+
     formset_class = AllocationAttributeUpdateForm
     template_name = "allocation/allocation_change_detail.html"
 
@@ -1711,6 +1717,7 @@ class AllocationChangeDetailView(LoginRequiredMixin, UserPassesTestMixin, FormVi
         return False
 
     def get_allocation_attributes_to_change(self, allocation_change_obj):
+        """Find all allocation change requests for the specified allocation, format as list of dicts"""
         attributes_to_change = allocation_change_obj.allocationattributechangerequest_set.all()
 
         attributes_to_change = [
@@ -1955,6 +1962,8 @@ class AllocationChangeListView(LoginRequiredMixin, UserPassesTestMixin, Template
 
 
 class AllocationChangeView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+    """Allows a user with manager permissions to create an allocation change request"""
+
     formset_class = AllocationAttributeChangeForm
     template_name = "allocation/allocation_change.html"
 
@@ -2003,6 +2012,7 @@ class AllocationChangeView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_allocation_attributes_to_change(self, allocation_obj):
+        """Find all changeable attributes for the specified allocation, format as list of dicts"""
         attributes_to_change = allocation_obj.allocationattribute_set.filter(
             allocation_attribute_type__is_changeable=True
         )
