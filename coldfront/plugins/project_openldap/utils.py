@@ -334,5 +334,5 @@ def _ldap_read_wrapper(funcname, *args, **kwargs) -> Tuple[Connection, Any]:
         func = getattr(conn, funcname)
         output = func(*args, **kwargs)
     if conn.result["result"] != 0:
-        raise LDAPException(conn)
+        raise LDAPException(conn.result)
     return conn, output
