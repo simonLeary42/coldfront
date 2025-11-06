@@ -141,7 +141,6 @@ class ProjectStatusChoiceFactory(DjangoModelFactory):
 class ProjectFactory(DjangoModelFactory):
     class Meta:
         model = Project
-        django_get_or_create = ("title",)
 
     pi = SubFactory(UserFactory)
     title = factory.Faker("project_title")
@@ -254,7 +253,6 @@ class AllocationStatusChoiceFactory(DjangoModelFactory):
 class AllocationFactory(DjangoModelFactory):
     class Meta:
         model = Allocation
-        django_get_or_create = ("project",)
 
     justification = factory.Faker("sentence")
     status = SubFactory(AllocationStatusChoiceFactory)
