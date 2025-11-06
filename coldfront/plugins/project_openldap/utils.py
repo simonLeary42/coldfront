@@ -29,9 +29,7 @@ PROJECT_OPENLDAP_CERT_FILE = import_from_settings("PROJECT_OPENLDAP_CERT_FILE")
 PROJECT_OPENLDAP_CACERT_FILE = import_from_settings("PROJECT_OPENLDAP_CACERT_FILE")
 PROJECT_OPENLDAP_ARCHIVE_OU = import_from_settings("PROJECT_OPENLDAP_ARCHIVE_OU")
 
-PROJECT_OPENLDAP_DESCRIPTION_TITLE_LENGTH = import_from_settings(
-    "PROJECT_OPENLDAP_DESCRIPTION_TITLE_LENGTH"
-)
+PROJECT_OPENLDAP_DESCRIPTION_TITLE_LENGTH = import_from_settings("PROJECT_OPENLDAP_DESCRIPTION_TITLE_LENGTH")
 
 # provide a sensible default locally to stop the openldap description being too long
 MAX_OPENLDAP_DESCRIPTION_LENGTH = 250
@@ -64,9 +62,7 @@ def add_members_to_openldap_posixgroup(dn, list_memberuids, write=True):
     Should not raise any exceptions
     returns True if not skipped and successful, False otherwise
     """
-    return _ldap_write_wrapper(
-        "modify", dn, {"memberUid": [(MODIFY_ADD, list_memberuids)]}, write=write
-    )
+    return _ldap_write_wrapper("modify", dn, {"memberUid": [(MODIFY_ADD, list_memberuids)]}, write=write)
 
 
 def remove_members_from_openldap_posixgroup(dn, list_memberuids, write=True):
@@ -75,9 +71,7 @@ def remove_members_from_openldap_posixgroup(dn, list_memberuids, write=True):
     Should not raise any exceptions
     returns True if not skipped and successful, False otherwise
     """
-    return _ldap_write_wrapper(
-        "modify", dn, {"memberUid": [(MODIFY_DELETE, list_memberuids)]}, write=write
-    )
+    return _ldap_write_wrapper("modify", dn, {"memberUid": [(MODIFY_DELETE, list_memberuids)]}, write=write)
 
 
 def add_per_project_ou_to_openldap(project_obj, dn, openldap_ou_description, write=True):
@@ -127,9 +121,7 @@ def update_posixgroup_description_in_openldap(dn, openldap_description, write=Tr
     Should not raise any exceptions
     returns True if not skipped and successful, False otherwise
     """
-    return _ldap_write_wrapper(
-        "modify", dn, {"description": [(MODIFY_REPLACE, [openldap_description])]}, write=write
-    )
+    return _ldap_write_wrapper("modify", dn, {"description": [(MODIFY_REPLACE, [openldap_description])]}, write=write)
 
 
 # MOVE the project to an archive OU - defined as env var
@@ -139,9 +131,7 @@ def move_dn_in_openldap(current_dn, relative_dn, destination_ou, write=True):
     Should not raise any exceptions
     returns True if not skipped and successful, False otherwise
     """
-    return _ldap_write_wrapper(
-        "modify_dn", current_dn, relative_dn, new_superior=destination_ou, write=write
-    )
+    return _ldap_write_wrapper("modify_dn", current_dn, relative_dn, new_superior=destination_ou, write=write)
 
 
 def ldapsearch_check_project_dn(dn):
@@ -182,9 +172,7 @@ def ldapsearch_get_description(dn):
     raises LDAPException
     raises KeyError if search has no results
     """
-    conn, _ = _ldap_read_wrapper(
-        "search", dn, "(objectclass=posixGroup)", attributes=["description"]
-    )
+    conn, _ = _ldap_read_wrapper("search", dn, "(objectclass=posixGroup)", attributes=["description"])
     if len(conn.entries) == 0:
         raise KeyError(dn)
     return conn.entries
@@ -230,9 +218,7 @@ def construct_dn_str(project_obj):
 
 def construct_dn_archived_str(project_obj):
     """Create a distinguished name (dn) for a project posixgroup in a per project ou, in the archive ou"""
-    return (
-        f"cn={project_obj.project_code},ou={project_obj.project_code},{PROJECT_OPENLDAP_ARCHIVE_OU}"
-    )
+    return f"cn={project_obj.project_code},ou={project_obj.project_code},{PROJECT_OPENLDAP_ARCHIVE_OU}"
 
 
 def construct_per_project_ou_relative_dn_str(project_obj):
@@ -276,9 +262,7 @@ def construct_project_posixgroup_description(project_obj):
 
     # also deal with the combined  description field, if it gets too long
     if len(description) > MAX_OPENLDAP_DESCRIPTION_LENGTH:
-        truncated_description = textwrap.shorten(
-            description, MAX_OPENLDAP_DESCRIPTION_LENGTH, placeholder="..."
-        )
+        truncated_description = textwrap.shorten(description, MAX_OPENLDAP_DESCRIPTION_LENGTH, placeholder="...")
         description = truncated_description
 
     return description
@@ -301,9 +285,7 @@ def _ldap_write_wrapper(funcname, *args, **kwargs) -> bool:
     if not kwargs.pop("write", True):
         logger.info("write is falsey, skipping...", stack_info=True, extra=logger_extra_data)
         return False
-    with _connection(
-        server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD, auto_bind=True
-    ) as conn:
+    with _connection(server, PROJECT_OPENLDAP_BIND_USER, PROJECT_OPENLDAP_BIND_PASSWORD, auto_bind=True) as conn:
         if isinstance(conn, LDAPException):
             logger.error("Failed to open LDAP connection", exc_info=conn, extra=logger_extra_data)
             return False
@@ -311,9 +293,7 @@ def _ldap_write_wrapper(funcname, *args, **kwargs) -> bool:
         try:
             func(*args, **kwargs)
         except Exception:
-            logger.exception(
-                "An unexpected exception occurred!", exc_info=True, extra=logger_extra_data
-            )
+            logger.exception("An unexpected exception occurred!", exc_info=True, extra=logger_extra_data)
             return False
     if conn.result["result"] != 0:
         logger.error("LDAP operation failed!", stack_info=True, extra=logger_extra_data)
