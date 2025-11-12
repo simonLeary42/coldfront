@@ -115,4 +115,4 @@ indent-style = "space"
 docstring-code-format = true
 
 [tool.djlint]
-ignore="H006,H021,H023,H209,H030,H031"
+ignore="H006,H021,H023,H029,H030,H031"
