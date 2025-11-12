@@ -46,10 +46,10 @@ dependencies = [
 ]
 
 [project.urls]
-"Bug Tracker" = "https://github.com/ubccr/coldfront/issues"
-Changelog = "https://github.com/ubccr/coldfront/blob/main/CHANGELOG.md"
-Documentation = "https://coldfront.readthedocs.io"
-"Source Code" = "https://github.com/ubccr/coldfront"
+"Bug Tracker" = "https://github.com/coldfront/coldfront/issues"
+Changelog = "https://github.com/coldfront/coldfront/blob/main/CHANGELOG.md"
+Documentation = "https://docs.coldfront.dev"
+"Source Code" = "https://github.com/coldfront/coldfront"
 
 [project.scripts]
 coldfront = "coldfront:manage"
