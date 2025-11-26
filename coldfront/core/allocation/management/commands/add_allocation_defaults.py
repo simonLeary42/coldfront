@@ -22,6 +22,7 @@ class Command(BaseCommand):
 
         for choice in (
             "Active",
+            "Approved",
             "Denied",
             "Expired",
             "New",
@@ -29,6 +30,7 @@ class Command(BaseCommand):
             "Payment Pending",
             "Payment Requested",
             "Payment Declined",
+            "Pending",
             "Renewal Requested",
             "Revoked",
             "Unpaid",
