@@ -33,7 +33,8 @@ def home(request):
     if request.user.is_authenticated:
         template_name = "portal/authorized_home.html"
         project_list = (
-            Project.objects.filter(
+            Project.objects.select_related("status")
+            .filter(
                 (
                     Q(pi=request.user)
                     & Q(
@@ -63,7 +64,8 @@ def home(request):
         )
 
         allocation_list = (
-            Allocation.objects.filter(
+            Allocation.objects.select_related("status", "project")
+            .filter(
                 Q(
                     status__name__in=[
                         "Active",
@@ -211,12 +213,12 @@ def allocation_by_fos(request):
 
 @cache_page(60 * 15)
 def allocation_summary(request):
-    allocation_resources = [
-        allocation.get_parent_resource.parent_resource
-        if allocation.get_parent_resource.parent_resource
-        else allocation.get_parent_resource
-        for allocation in Allocation.objects.filter(status__name="Active")
-    ]
+    allocation_resources = []
+    for allocation in Allocation.objects.filter(status__name="Active"):
+        parent_resource = allocation.get_parent_resource
+        allocation_resources.append(
+            parent_resource.parent_resource if parent_resource.parent_resource else parent_resource
+        )
 
     allocations_count_by_resource = dict(Counter(allocation_resources))
 

@@ -121,12 +121,16 @@ class AllocationDetailView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs.get("pk")
-        allocation_obj = get_object_or_404(Allocation, pk=pk)
-        allocation_users = allocation_obj.allocationuser_set.exclude(
-            status__name__in=[
-                "Removed",
-            ]
-        ).order_by("user__username")
+        allocation_obj = get_object_or_404(Allocation.objects.select_related("status", "project"), pk=pk)
+        allocation_users = (
+            allocation_obj.allocationuser_set.select_related("user", "status")
+            .exclude(
+                status__name__in=[
+                    "Removed",
+                ]
+            )
+            .order_by("user__username")
+        )
 
         if ALLOCATION_EULA_ENABLE:
             user_in_allocation = allocation_users.filter(user=self.request.user).exists()
@@ -145,10 +149,11 @@ class AllocationDetailView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
 
         # set visible usage attributes
         alloc_attr_set = allocation_obj.get_attribute_set(self.request.user)
+        alloc_attr_set = alloc_attr_set.select_related("allocation_attribute_type", "allocationattributeusage")
         attributes_with_usage = [a for a in alloc_attr_set if hasattr(a, "allocationattributeusage")]
         attributes = alloc_attr_set
 
-        allocation_changes = allocation_obj.allocationchangerequest_set.all().order_by("-pk")
+        allocation_changes = allocation_obj.allocationchangerequest_set.select_related("status").all().order_by("-pk")
 
         guage_data = []
         invalid_attributes = []
@@ -181,7 +186,7 @@ class AllocationDetailView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
             self.request.user, ProjectPermission.UPDATE
         )
 
-        noteset = allocation_obj.allocationusernote_set
+        noteset = allocation_obj.allocationusernote_set.select_related("author")
         notes = noteset.all() if self.request.user.is_superuser else noteset.filter(is_private=False)
 
         context["notes"] = notes
@@ -189,7 +194,7 @@ class AllocationDetailView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
 
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get("pk")
-        allocation_obj = get_object_or_404(Allocation, pk=pk)
+        allocation_obj = get_object_or_404(Allocation.objects.select_related("status"), pk=pk)
 
         initial_data = {
             "status": allocation_obj.status,
@@ -212,7 +217,7 @@ class AllocationDetailView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
 
     def post(self, request, *args, **kwargs):
         pk = self.kwargs.get("pk")
-        allocation_obj = get_object_or_404(Allocation, pk=pk)
+        allocation_obj = get_object_or_404(Allocation.objects.select_related("status", "project", "project__pi"), pk=pk)
         allocation_users = allocation_obj.allocationuser_set.exclude(status__name__in=["Removed"]).order_by(
             "user__username"
         )
@@ -454,7 +459,7 @@ class AllocationListView(LoginRequiredMixin, ListView):
                 self.request.user.is_superuser or self.request.user.has_perm("allocation.can_view_all_allocations")
             ):
                 allocations = (
-                    Allocation.objects.prefetch_related(
+                    Allocation.objects.select_related(
                         "project",
                         "project__pi",
                         "status",
@@ -464,7 +469,7 @@ class AllocationListView(LoginRequiredMixin, ListView):
                 )
             else:
                 allocations = (
-                    Allocation.objects.prefetch_related(
+                    Allocation.objects.select_related(
                         "project",
                         "project__pi",
                         "status",
@@ -529,7 +534,7 @@ class AllocationListView(LoginRequiredMixin, ListView):
 
         else:
             allocations = (
-                Allocation.objects.prefetch_related(
+                Allocation.objects.select_related(
                     "project",
                     "project__pi",
                     "status",
@@ -779,7 +784,7 @@ class AllocationAddUsersView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
         return False
 
     def dispatch(self, request, *args, **kwargs):
-        allocation_obj = get_object_or_404(Allocation, pk=self.kwargs.get("pk"))
+        allocation_obj = get_object_or_404(Allocation.objects.select_related("status"), pk=self.kwargs.get("pk"))
 
         message = None
         if allocation_obj.is_locked and not self.request.user.is_superuser:
@@ -829,7 +834,7 @@ class AllocationAddUsersView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
 
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get("pk")
-        allocation_obj = get_object_or_404(Allocation, pk=pk)
+        allocation_obj = get_object_or_404(Allocation.objects.select_related("project", "project__pi"), pk=pk)
 
         users_to_add = self.get_users_to_add(allocation_obj)
         context = {}
@@ -859,7 +864,7 @@ class AllocationAddUsersView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
 
     def post(self, request, *args, **kwargs):
         pk = self.kwargs.get("pk")
-        allocation_obj = get_object_or_404(Allocation, pk=pk)
+        allocation_obj = get_object_or_404(Allocation.objects.select_related("project", "project__pi"), pk=pk)
 
         users_to_add = self.get_users_to_add(allocation_obj)
 
@@ -880,8 +885,8 @@ class AllocationAddUsersView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
 
                     user_obj = get_user_model().objects.get(username=user_form_data.get("username"))
 
-                    if allocation_obj.allocationuser_set.filter(user=user_obj).exists():
-                        allocation_user_obj = allocation_obj.allocationuser_set.get(user=user_obj)
+                    allocation_user_obj = allocation_obj.allocationuser_set.filter(user=user_obj).first()
+                    if allocation_user_obj:
                         if ALLOCATION_EULA_ENABLE and not user_obj.userprofile.is_pi and allocation_obj.get_eula():
                             allocation_user_obj.status = allocation_user_pending_status_choice
                             send_email_template(
@@ -948,7 +953,7 @@ class AllocationRemoveUsersView(LoginRequiredMixin, UserPassesTestMixin, Templat
         return False
 
     def dispatch(self, request, *args, **kwargs):
-        allocation_obj = get_object_or_404(Allocation, pk=self.kwargs.get("pk"))
+        allocation_obj = get_object_or_404(Allocation.objects.select_related("status"), pk=self.kwargs.get("pk"))
 
         message = None
         if allocation_obj.is_locked and not self.request.user.is_superuser:
@@ -1008,7 +1013,7 @@ class AllocationRemoveUsersView(LoginRequiredMixin, UserPassesTestMixin, Templat
 
     def post(self, request, *args, **kwargs):
         pk = self.kwargs.get("pk")
-        allocation_obj = get_object_or_404(Allocation, pk=pk)
+        allocation_obj = get_object_or_404(Allocation.objects.select_related("project"), pk=pk)
 
         users_to_remove = self.get_users_to_remove(allocation_obj)
 
@@ -1058,7 +1063,7 @@ class AllocationAttributeCreateView(LoginRequiredMixin, UserPassesTestMixin, Cre
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs.get("pk")
-        allocation_obj = get_object_or_404(Allocation, pk=pk)
+        allocation_obj = get_object_or_404(Allocation.objects.select_related("project", "project__pi"), pk=pk)
         context["allocation"] = allocation_obj
         return context
 
@@ -1090,7 +1095,9 @@ class AllocationAttributeDeleteView(LoginRequiredMixin, UserPassesTestMixin, Tem
         return False
 
     def get_allocation_attributes_to_delete(self, allocation_obj):
-        allocation_attributes_to_delete = AllocationAttribute.objects.filter(allocation=allocation_obj)
+        allocation_attributes_to_delete = AllocationAttribute.objects.select_related(
+            "allocation_attribute_type"
+        ).filter(allocation=allocation_obj)
         allocation_attributes_to_delete = [
             {
                 "pk": attribute.pk,
@@ -1104,7 +1111,7 @@ class AllocationAttributeDeleteView(LoginRequiredMixin, UserPassesTestMixin, Tem
 
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get("pk")
-        allocation_obj = get_object_or_404(Allocation, pk=pk)
+        allocation_obj = get_object_or_404(Allocation.objects.select_related("project"), pk=pk)
 
         allocation_attributes_to_delete = self.get_allocation_attributes_to_delete(allocation_obj)
         context = {}
@@ -1125,16 +1132,17 @@ class AllocationAttributeDeleteView(LoginRequiredMixin, UserPassesTestMixin, Tem
         formset = formset_factory(AllocationAttributeDeleteForm, max_num=len(allocation_attributes_to_delete))
         formset = formset(request.POST, initial=allocation_attributes_to_delete, prefix="attributeform")
 
-        attributes_deleted_count = 0
-
         if formset.is_valid():
+            selected_attributes = []
             for form in formset:
                 form_data = form.cleaned_data
-                if form_data["selected"]:
-                    attributes_deleted_count += 1
+                if form_data.get("selected"):
+                    selected_attributes.append(form_data.get("pk"))
 
-                    allocation_attribute = AllocationAttribute.objects.get(pk=form_data["pk"])
-                    allocation_attribute.delete()
+            attributes_deleted_count = len(selected_attributes)
+            if attributes_deleted_count:
+                attribute_objs = AllocationAttribute.objects.filter(pk__in=selected_attributes)
+                attribute_objs.delete()
 
             messages.success(request, f"Deleted {attributes_deleted_count} attributes from allocation.")
         else:
@@ -1203,7 +1211,9 @@ class AllocationRequestListView(LoginRequiredMixin, UserPassesTestMixin, Templat
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        allocation_list = Allocation.objects.filter(
+        allocation_list = Allocation.objects.select_related(
+            "status", "project", "project__pi", "project__status"
+        ).filter(
             status__name__in=[
                 "New",
                 "Renewal Requested",
@@ -1214,7 +1224,7 @@ class AllocationRequestListView(LoginRequiredMixin, UserPassesTestMixin, Templat
 
         allocation_renewal_dates = {}
         for allocation in allocation_list.filter(status__name="Renewal Requested"):
-            allocation_history = allocation.history.all().order_by("-history_date")
+            allocation_history = allocation.history.select_related("status").all().order_by("-history_date")
             for history in allocation_history:
                 if history.status.name != "Renewal Requested":
                     break
@@ -1945,7 +1955,9 @@ class AllocationChangeListView(LoginRequiredMixin, UserPassesTestMixin, Template
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        allocation_change_list = AllocationChangeRequest.objects.filter(
+        allocation_change_list = AllocationChangeRequest.objects.select_related(
+            "allocation", "allocation__project", "allocation__project__pi"
+        ).filter(
             status__name__in=[
                 "Pending",
             ]
@@ -2141,7 +2153,7 @@ class AllocationAttributeEditView(LoginRequiredMixin, UserPassesTestMixin, FormV
         return False
 
     def get_allocation_attributes_to_change(self, allocation_obj):
-        attributes_to_change = allocation_obj.allocationattribute_set.all()
+        attributes_to_change = allocation_obj.allocationattribute_set.select_related("allocation_attribute_type").all()
 
         attributes_to_change = [
             {
@@ -2157,7 +2169,7 @@ class AllocationAttributeEditView(LoginRequiredMixin, UserPassesTestMixin, FormV
 
     def get(self, request, *args, **kwargs):
         context = {}
-        allocation_obj = get_object_or_404(Allocation, pk=self.kwargs.get("pk"))
+        allocation_obj = get_object_or_404(Allocation.objects.select_related("project"), pk=self.kwargs.get("pk"))
         allocation_attributes_to_change = self.get_allocation_attributes_to_change(allocation_obj)
         context["allocation"] = allocation_obj
 
@@ -2177,8 +2189,6 @@ class AllocationAttributeEditView(LoginRequiredMixin, UserPassesTestMixin, FormV
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
-        attribute_changes_to_make = set()
-
         pk = self.kwargs.get("pk")
         allocation_obj = get_object_or_404(Allocation, pk=pk)
         allocation_attributes_to_change = self.get_allocation_attributes_to_change(allocation_obj)
@@ -2205,14 +2215,18 @@ class AllocationAttributeEditView(LoginRequiredMixin, UserPassesTestMixin, FormV
             error_redirect = HttpResponseRedirect(reverse("allocation-attribute-edit", kwargs={"pk": pk}))
             return error_redirect
 
+        attribute_changes_to_make = set()
+        attribute_changes_to_make_pks = dict()
         for entry in formset:
             formset_data = entry.cleaned_data
             value = formset_data.get("value")
 
             if value != "":
-                allocation_attribute = AllocationAttribute.objects.get(pk=formset_data.get("attribute_pk"))
-                if allocation_attribute.value != value:
-                    attribute_changes_to_make.add((allocation_attribute, value))
+                attribute_changes_to_make_pks[formset_data.get("attribute_pk")] = value
+
+        for allocation_attribute in AllocationAttribute.objects.filter(pk__in=attribute_changes_to_make_pks):
+            if allocation_attribute.value != attribute_changes_to_make_pks.get("value"):
+                attribute_changes_to_make.add((allocation_attribute, value))
 
         for allocation_attribute, value in attribute_changes_to_make:
             allocation_attribute.value = value
