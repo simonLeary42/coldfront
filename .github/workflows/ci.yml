@@ -37,6 +37,9 @@ jobs:
       - name: Run tests
         run: uv run coldfront test
 
+      - name: Check for migrations
+        run: uv run coldfront makemigrations --check
+
   check_docs:
     runs-on: ubuntu-latest
     steps:

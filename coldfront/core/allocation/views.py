@@ -2144,21 +2144,17 @@ class AllocationAttributeEditView(LoginRequiredMixin, UserPassesTestMixin, FormV
             error_redirect = HttpResponseRedirect(reverse("allocation-attribute-edit", kwargs={"pk": pk}))
             return error_redirect
 
-        attribute_changes_to_make = set()
         attribute_changes_to_make_pks = dict()
         for entry in formset:
             formset_data = entry.cleaned_data
             value = formset_data.get("value")
+            orig_value = formset_data.get("orig_value")
 
-            if value != "":
+            if not value == "" and not value == orig_value:
                 attribute_changes_to_make_pks[formset_data.get("attribute_pk")] = value
 
-        for allocation_attribute in AllocationAttribute.objects.filter(pk__in=attribute_changes_to_make_pks):
-            if allocation_attribute.value != attribute_changes_to_make_pks.get("value"):
-                attribute_changes_to_make.add((allocation_attribute, value))
-
-        for allocation_attribute, value in attribute_changes_to_make:
-            allocation_attribute.value = value
+        for allocation_attribute in AllocationAttribute.objects.filter(pk__in=attribute_changes_to_make_pks.keys()):
+            allocation_attribute.value = attribute_changes_to_make_pks.get(allocation_attribute.pk)
             allocation_attribute.save()
             allocation_attribute_changed.send(
                 sender=self.__class__,
