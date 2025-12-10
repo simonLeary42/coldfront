@@ -166,16 +166,18 @@ def center_summary(request):
     total_grants_by_agency = sorted(total_grants_by_agency, key=operator.itemgetter(1), reverse=True)
     grants_agency_chart_data = generate_total_grants_by_agency_chart_data(total_grants_by_agency)
     context["grants_agency_chart_data"] = grants_agency_chart_data
-    sum_agg = Sum("total_amount_awarded", default=0)
-    context["grants_total"] = intcomma(int(Grant.objects.aggregate(sum_agg)["total_amount_awarded__sum"]))
+    sum_agg = Sum(Cast("total_amount_awarded", FloatField()), default=0)
+    context["grants_total"] = intcomma(
+        int(Grant.objects.aggregate(total_amount_awarded__sum=sum_agg)["total_amount_awarded__sum"])
+    )
     context["grants_total_pi_only"] = intcomma(
-        int(Grant.objects.filter(role="PI").aggregate(sum_agg)["total_amount_awarded__sum"])
+        int(Grant.objects.filter(role="PI").aggregate(total_amount_awarded__sum=sum_agg)["total_amount_awarded__sum"])
     )
     context["grants_total_copi_only"] = intcomma(
-        int(Grant.objects.filter(role="CoPI").aggregate(sum_agg)["total_amount_awarded__sum"])
+        int(Grant.objects.filter(role="CoPI").aggregate(total_amount_awarded__sum=sum_agg)["total_amount_awarded__sum"])
     )
     context["grants_total_sp_only"] = intcomma(
-        int(Grant.objects.filter(role="SP").aggregate(sum_agg)["total_amount_awarded__sum"])
+        int(Grant.objects.filter(role="SP").aggregate(total_amount_awarded__sum=sum_agg)["total_amount_awarded__sum"])
     )
 
     return render(request, "portal/center_summary.html", context)
