@@ -9,6 +9,10 @@ from django.test import TestCase
 from coldfront.core.project.models import ProjectUserStatusChoice
 from coldfront.core.test_helpers import utils
 from coldfront.core.test_helpers.factories import (
+    AllocationFactory,
+    AllocationStatusChoiceFactory,
+    AllocationUserFactory,
+    AllocationUserStatusChoiceFactory,
     PAttributeTypeFactory,
     ProjectAttributeFactory,
     ProjectAttributeTypeFactory,
@@ -36,11 +40,16 @@ class ProjectViewTestBase(TestCase):
 
         manager_role = ProjectUserRoleChoiceFactory(name="Manager")
         cls.pi_user = ProjectUserFactory(project=cls.project, role=manager_role, user=cls.project.pi)
+        cls.manager_user = ProjectUserFactory(project=cls.project, role=manager_role)
         cls.admin_user = UserFactory(is_staff=True, is_superuser=True)
         cls.nonproject_user = UserFactory(is_staff=False, is_superuser=False)
 
         attributetype = PAttributeTypeFactory(name="string")
         cls.projectattributetype = ProjectAttributeTypeFactory(attribute_type=attributetype)
+
+        cls.allocation = AllocationFactory(status=AllocationStatusChoiceFactory(name="active"), project=cls.project)
+        active_ausc = AllocationUserStatusChoiceFactory(name="Active")
+        cls.pi_as_alloc_user = AllocationUserFactory(allocation=cls.allocation, status=active_ausc)
 
     def project_access_tstbase(self, url):
         """Test basic access control for project views. For all project views:
@@ -111,6 +120,12 @@ class ProjectDetailViewTest(ProjectViewTestBase):
         utils.page_does_not_contain_for_user(self, self.pi_user.user, self.url, "Add Notification")
         # non-manager user cannot see add notification button
         utils.page_does_not_contain_for_user(self, self.project_user.user, self.url, "Add Notification")
+
+    def test_manager_can_view_allocations(self):
+        """Project Manager should be able to view allocations on the project
+        without being a user on the Allocation"""
+        response = utils.login_and_get_page(self.client, self.manager_user.user, self.url)
+        self.assertEqual(len(response.context["allocations"]), 1)
 
 
 class ProjectCreateTest(ProjectViewTestBase):
