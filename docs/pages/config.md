@@ -267,18 +267,21 @@ For more info on [ColdFront plugins](plugin/existing_plugins.md) (Django apps)
 
 #### Slurm
 
-| Name                            | Description                                                         | Has Setting | Has Environment Variable |
-| :-------------------------------|:--------------------------------------------------------------------|:------------|:-------------------------|
-| PLUGIN_SLURM                    | Enable Slurm integration. Default False                             | no          | yes                      |
-| SLURM_SACCTMGR_PATH             | Path to sacctmgr command. Default `/usr/bin/sacctmgr`               | yes         | yes                      |
-| SLURM_NOOP                      | Enable/disable noop. Default False                                  | yes         | yes                      |
-| SLURM_IGNORE_USERS              | List of user accounts to ignore when generating Slurm associations  | yes         | yes                      |
-| SLURM_IGNORE_ACCOUNTS           | List of Slurm accounts to ignore when generating Slurm associations | yes         | yes                      |
-| SLURM_ACCOUNT_ATTRIBUTE_NAME    | Internal use only                                                   | yes         | no                       |
-| SLURM_CLUSTER_ATTRIBUTE_NAME    | Internal use only                                                   | yes         | no                       |
-| SLURM_IGNORE_CLUSTERS           | Internal use only                                                   | yes         | no                       |
-| SLURM_SPECS_ATTRIBUTE_NAME      | Internal use only                                                   | yes         | no                       |
-| SLURM_USER_SPECS_ATTRIBUTE_NAME | Internal use only                                                   | yes         | no                       |
+| Name                             | Description                                                         | Has Setting | Has Environment Variable |
+| :--------------------------------|:--------------------------------------------------------------------|:------------|:-------------------------|
+| PLUGIN_SLURM                     | Enable Slurm integration. Default False                             | no          | yes                      |
+| SLURM_SACCTMGR_PATH              | Path to sacctmgr command. Default `/usr/bin/sacctmgr`               | yes         | yes                      |
+| SLURM_NOOP                       | Enable/disable noop. Default False                                  | yes         | yes                      |
+| SLURM_IGNORE_USERS               | List of user accounts to ignore when generating Slurm associations  | yes         | yes                      |
+| SLURM_IGNORE_ACCOUNTS            | List of Slurm accounts to ignore when generating Slurm associations | yes         | yes                      |
+| SLURM_ACCOUNT_ATTRIBUTE_NAME     | Internal use only                                                   | yes         | no                       |
+| SLURM_CLUSTER_ATTRIBUTE_NAME     | Internal use only                                                   | yes         | no                       |
+| SLURM_IGNORE_CLUSTERS            | Internal use only                                                   | yes         | no                       |
+| SLURM_SPECS_ATTRIBUTE_NAME       | Internal use only                                                   | yes         | no                       |
+| SLURM_USER_SPECS_ATTRIBUTE_NAME  | Internal use only                                                   | yes         | no                       |
+| SLURM_SUBMISSION_INFO            | List of options to display in the slurm help text. Default `["account"]` | yes    | yes                      |
+| SLURM_DISPLAY_SHORT_OPTION_NAMES | Enable/disable using the shortened names of the options. Default False   | yes    | yes                      |
+| SLURM_SHORT_OPTION_NAMES         | Short names of each option, if one isn't provided the full name is used. Default `{"qos": "q", "account": "A", "clusters": "M", "partition": "p"}`| yes | yes |
 
 #### XDMoD
 
