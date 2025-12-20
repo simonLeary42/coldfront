@@ -261,15 +261,16 @@ dependencies = [
     { name = "django-crispy-forms" },
     { name = "django-environ" },
     { name = "django-filter" },
+    { name = "django-htmx" },
     { name = "django-model-utils" },
     { name = "django-q2" },
     { name = "django-settings-export" },
     { name = "django-simple-history" },
     { name = "django-split-settings" },
     { name = "django-su" },
+    { name = "django-vite" },
     { name = "djangorestframework" },
     { name = "doi2bib" },
-    { name = "fontawesome-free" },
     { name = "formencode" },
     { name = "gunicorn" },
     { name = "humanize" },
@@ -330,15 +331,16 @@ requires-dist = [
     { name = "django-crispy-forms", specifier = ">=2.3" },
     { name = "django-environ", specifier = ">=0.12.0" },
     { name = "django-filter", specifier = ">=25.1" },
+    { name = "django-htmx", specifier = ">=1.27.0" },
     { name = "django-model-utils", specifier = ">=5.0.0" },
     { name = "django-q2", specifier = ">=1.7.6" },
     { name = "django-settings-export", specifier = ">=1.2.1" },
     { name = "django-simple-history", specifier = ">=3.8.0" },
     { name = "django-split-settings", specifier = ">=1.3.2" },
     { name = "django-su", specifier = ">=1.0.0" },
+    { name = "django-vite", specifier = ">=3.1.0" },
     { name = "djangorestframework", specifier = ">=3.16.0" },
     { name = "doi2bib", specifier = ">=0.4.0" },
-    { name = "fontawesome-free", specifier = ">=5.15.4" },
     { name = "formencode", specifier = ">=2.1.1" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "humanize", specifier = ">=4.12.2" },
@@ -504,6 +506,19 @@ wheels = [
 ]
 
 [[package]]
+name = "django-htmx"
+version = "1.27.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "asgiref" },
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/34/f2/8c3e28a5eed8e5226835c762892bfef74eda7e8629c65b49c186098eb303/django_htmx-1.27.0.tar.gz", hash = "sha256:036e5da801bfdf5f1ca815f21592cfb9f004a898f330c842f15e55c70e301a75", size = 65362, upload-time = "2025-11-28T23:18:55.049Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/23/ac/25d28489dc43224e260f4ebee7565f7ef1efe12af0f284a89500c19f75e2/django_htmx-1.27.0-py3-none-any.whl", hash = "sha256:13e1e13b87d39b57f95aae6e4987cb3df056d0b1373a41f4a94504a00298ffd8", size = 62126, upload-time = "2025-11-28T23:18:53.57Z" },
+]
+
+[[package]]
 name = "django-model-utils"
 version = "5.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -603,6 +618,18 @@ wheels = [
 ]
 
 [[package]]
+name = "django-vite"
+version = "3.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/23/fe/4be07f538bbf9bf8bf73b045552ec2a1b4fba67e3176abb30490b643368e/django_vite-3.1.0.tar.gz", hash = "sha256:8b4ffe4a9fa81ff568bfb195e74dde8694aaf13fd4b656ae60bf59cce08b85e8", size = 25434, upload-time = "2025-02-23T15:32:07.914Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/30/59/7df4b1077fa41b43b4e542696d75138dbb86a65f44248c607b3e0f1014ce/django_vite-3.1.0-py3-none-any.whl", hash = "sha256:4e46572bd6b1ce70784be129205dc2ffcbc7a3c19fea50bebfb72b327bbde5fc", size = 23579, upload-time = "2025-02-23T15:32:06.603Z" },
+]
+
+[[package]]
 name = "djangorestframework"
 version = "3.16.1"
 source = { registry = "https://pypi.org/simple" }
@@ -670,14 +697,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/64/27/022d4dbd4c20567b4c294f79a133cc2f05240ea61e0d515ead18c995c249/faker-38.2.0.tar.gz", hash = "sha256:20672803db9c7cb97f9b56c18c54b915b6f1d8991f63d1d673642dc43f5ce7ab", size = 1941469, upload-time = "2025-11-19T16:37:31.892Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/17/93/00c94d45f55c336434a15f98d906387e87ce28f9918e4444829a8fda432d/faker-38.2.0-py3-none-any.whl", hash = "sha256:35fe4a0a79dee0dc4103a6083ee9224941e7d3594811a50e3969e547b0d2ee65", size = 1980505, upload-time = "2025-11-19T16:37:30.208Z" },
-]
-
-[[package]]
-name = "fontawesome-free"
-version = "5.15.4"
-source = { registry = "https://pypi.org/simple" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/01/68/6ed8f4c7efa69a479c8421d9a9d2905132c3869b118554014b8ab7291912/fontawesome_free-5.15.4-py3-none-any.whl", hash = "sha256:5d3d0edbf6ce0f7cd56978a31ea4ea697a8bb28103b5c528b3aa1f0a4474d9a1", size = 20862662, upload-time = "2021-08-04T19:22:31.34Z" },
 ]
 
 [[package]]

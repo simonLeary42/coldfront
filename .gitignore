@@ -3,6 +3,7 @@
 coldfront.egg-info
 dist
 build
+.zed/
 *._*
 *.DS_Store
 *.swp
@@ -21,3 +22,4 @@ db.json
 .env
 .devcontainer/*
 .bin/*
+node_modules
