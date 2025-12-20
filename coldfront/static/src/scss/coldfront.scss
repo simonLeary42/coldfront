@@ -8,9 +8,7 @@
 @use '~bootstrap/dist/css/bootstrap.min';
 @use 'flatpickr/dist/flatpickr.min';
 @use 'select2/dist/css/select2.min';
-
-// Center summary only
-@use 'centerSummary';
+@use 'datatables.net-bs4/css/dataTables.bootstrap4';
 
 // Custom styles
 @use 'custom/portal';

@@ -6,8 +6,11 @@ import csv
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.humanize.templatetags.humanize import intcomma
+from django.db.models import Count, FloatField, Sum
+from django.db.models.functions import Cast
 from django.forms import formset_factory
-from django.http import HttpResponseRedirect, StreamingHttpResponse
+from django.http import HttpResponseRedirect, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views import View
@@ -375,3 +378,27 @@ class GrantDownloadView(LoginRequiredMixin, UserPassesTestMixin, View):
         response = StreamingHttpResponse((writer.writerow(row) for row in rows), content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="grants.csv"'
         return response
+
+
+class GrantSummaryDataView(View):
+    def get(self, request, *args, **kwargs):
+        data = {"data": []}
+        grants = {}
+        for row in Grant.objects.values("funding_agency__name").annotate(
+            total_amount=Sum(Cast("total_amount_awarded", FloatField()))
+        ):
+            grants[row["funding_agency__name"]] = {"total": row["total_amount"]}
+
+        for row in Grant.objects.values("funding_agency__name").annotate(count=Count("total_amount_awarded")):
+            grants[row["funding_agency__name"]]["count"] = row["count"]
+
+        for name, rec in grants.items():
+            data["data"].append(
+                {
+                    "total": rec["total"],
+                    "name": f"{name}: ${intcomma(int(rec['total']))} ({rec['count']})",
+                }
+            )
+
+        data["data"] = sorted(data["data"], key=lambda d: d["total"], reverse=True)
+        return JsonResponse(data)

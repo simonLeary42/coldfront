@@ -307,7 +307,9 @@ Project Detail
         <div class="card mb-3 mr-1">
           <div class="card-body">
             <h4 class="card-title">{{attribute}}</h4>
-            <div id="gauge-{{forloop.counter0}}"></div>
+            <div class="chart-container mx-auto" style="text-align: center; position: relative; width:40%">
+                <canvas class="gauge-chart" data-title="{{ attribute.proj_attr_type.name }} {{ attribute.projectattributeusage.value }} of {{ attribute.value }}" data-total="{{ attribute.value }}" data-used="{{ attribute.projectattributeusage.value }}"></canvas>
+            </div>
           </div>
         </div>
       {% endfor %}
@@ -526,8 +528,6 @@ Project Detail
   </div>
 </div>
 <!-- End Admin Messages -->
-{{ guage_data|json_script:"guage-data" }}
-
 {% endblock %}
 
 {% block javascript %}
@@ -535,9 +535,6 @@ Project Detail
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     $('[data-toggle="popover"]').popover();
-    var guage_data = JSON.parse(document.getElementById('guage-data').textContent);
-    drawGauges(guage_data);
-
     $("#selectAll").click(function () {
       $("input[id^='email_notifications_for_user_id_']").not(":disabled").prop('checked', $(this).prop('checked')).change();
      });

@@ -32,14 +32,6 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           coldfront: path.resolve(__dirname, "src/coldfront.ts"),
-          "coldfront-center-summary": path.resolve(
-            __dirname,
-            "src/centerSummary.ts",
-          ),
-          "coldfront-allocation-summary": path.resolve(
-            __dirname,
-            "src/allocationSummary.ts",
-          ),
         },
         output: {
           entryFileNames: `[name].js`,
