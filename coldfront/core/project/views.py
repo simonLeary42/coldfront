@@ -27,7 +27,6 @@ from coldfront.core.allocation.models import (
     Allocation,
     AllocationStatusChoice,
 )
-from coldfront.core.allocation.utils import generate_guauge_data_from_usage
 from coldfront.core.grant.models import Grant
 from coldfront.core.project.forms import (
     ProjectAddUserForm,
@@ -142,21 +141,13 @@ class ProjectDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 
             attributes = [attribute for attribute in attributes_query.filter(proj_attr_type__is_private=False)]
 
-        guage_data = []
         invalid_attributes = []
         for attribute in attributes_with_usage:
             try:
-                guage_data.append(
-                    generate_guauge_data_from_usage(
-                        attribute.proj_attr_type.name,
-                        float(attribute.value),
-                        float(attribute.projectattributeusage.value),
-                    )
-                )
+                float(attribute.value)
+                float(attribute.projectattributeusage.value)
             except ValueError:
-                logger.error(
-                    "Allocation attribute '%s' is not an int but has a usage", attribute.allocation_attribute_type.name
-                )
+                logger.error("Project attribute '%s' is not an int but has a usage", attribute.proj_attr_type.name)
                 invalid_attributes.append(attribute)
 
         for a in invalid_attributes:
@@ -219,7 +210,6 @@ class ProjectDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         context["allocations"] = allocations
         context["user_allocation_status"] = user_status
         context["attributes"] = attributes
-        context["guage_data"] = guage_data
         context["attributes_with_usage"] = attributes_with_usage
         context["project_users"] = project_users
 
@@ -614,7 +604,7 @@ class ProjectCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
         if PROJECT_CODE:
             """
-            Set the ProjectCode object, if PROJECT_CODE is defined. 
+            Set the ProjectCode object, if PROJECT_CODE is defined.
             If PROJECT_CODE_PADDING is defined, the set amount of padding will be added to PROJECT_CODE.
             """
             project_obj.project_code = generate_project_code(PROJECT_CODE, project_obj.pk, PROJECT_CODE_PADDING or 0)
@@ -655,7 +645,7 @@ class ProjectUpdateView(SuccessMessageMixin, LoginRequiredMixin, UserPassesTestM
 
         if PROJECT_CODE and project_obj.project_code == "":
             """
-            Updates project code if no value was set, providing the feature is activated. 
+            Updates project code if no value was set, providing the feature is activated.
             """
             project_obj.project_code = generate_project_code(PROJECT_CODE, project_obj.pk, PROJECT_CODE_PADDING or 0)
             project_obj.save(update_fields=["project_code"])

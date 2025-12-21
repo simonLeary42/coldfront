@@ -12,8 +12,9 @@ from bibtexparser.bibdatabase import as_text
 from bibtexparser.bparser import BibTexParser
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Count
 from django.forms import formset_factory
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.generic import TemplateView, View
@@ -506,3 +507,23 @@ class PublicationExportPublicationsView(LoginRequiredMixin, UserPassesTestMixin,
 
     def get_success_url(self):
         return reverse("project-detail", kwargs={"pk": self.object.project.id})
+
+
+class PublicationByYearView(View):
+    def get(self, request, *args, **kwargs):
+        data = {
+            "total": 0,
+            "data": [],
+        }
+        for pub in list(
+            Publication.objects.filter(year__gte=1999)
+            .values("unique_id", "year")
+            .distinct()
+            .values("year")
+            .annotate(count=Count("year"))
+            .order_by("year")
+        ):
+            data["total"] += pub["count"]
+            data["data"].append({"name": pub["year"], "total": pub["count"]})
+
+        return JsonResponse(data)

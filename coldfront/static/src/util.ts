@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import c3 from 'c3';
-
 export function getCookie(name: string) {
   let cookieValue = '';
   if (document.cookie && document.cookie != '') {
@@ -18,15 +16,4 @@ export function getCookie(name: string) {
     }
   }
   return cookieValue;
-}
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export function drawGauges(guage_data: Array<any>) {
-  const arrayLength = guage_data.length;
-  for (let i = 0; i < arrayLength; i++) {
-    c3.generate({
-      bindto: '#gauge-' + i,
-      data: guage_data[i],
-    });
-  }
 }

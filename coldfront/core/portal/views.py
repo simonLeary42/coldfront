@@ -2,26 +2,20 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-import operator
+import datetime
 from collections import Counter
 
 from django.conf import settings
 from django.contrib.humanize.templatetags.humanize import intcomma
-from django.db.models import Count, FloatField, Q, Sum
+from django.db.models import FloatField, Q, Sum
 from django.db.models.functions import Cast
+from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.cache import cache_page
 
 from coldfront.core.allocation.models import Allocation, AllocationUser
 from coldfront.core.grant.models import Grant
-from coldfront.core.portal.utils import (
-    generate_allocations_chart_data,
-    generate_publication_by_year_chart_data,
-    generate_resources_chart_data,
-    generate_total_grants_by_agency_chart_data,
-)
 from coldfront.core.project.models import Project
-from coldfront.core.publication.models import Publication
 from coldfront.core.research_output.models import ResearchOutput
 from coldfront.core.utils.common import import_from_settings
 
@@ -116,70 +110,21 @@ def home(request):
 
 def center_summary(request):
     context = {}
+    context["research_outputs_count"] = ResearchOutput.objects.all().distinct().count()
 
-    # Publications Card
-    publications_by_year = list(
-        Publication.objects.filter(year__gte=1999)
-        .values("unique_id", "year")
-        .distinct()
-        .values("year")
-        .annotate(num_pub=Count("year"))
-        .order_by("-year")
-    )
-
-    publications_by_year = [(ele["year"], ele["num_pub"]) for ele in publications_by_year]
-
-    publication_by_year_bar_chart_data = generate_publication_by_year_chart_data(publications_by_year)
-    context["publication_by_year_bar_chart_data"] = publication_by_year_bar_chart_data
-    context["total_publications_count"] = (
-        Publication.objects.filter(year__gte=1999).values("unique_id", "year").distinct().count()
-    )
-
-    # Research Outputs card
-    context["total_research_outputs_count"] = ResearchOutput.objects.all().distinct().count()
-
-    # Grants Card
-    total_grants_by_agency_sum = list(
-        Grant.objects.values("funding_agency__name").annotate(
-            total_amount=Sum(Cast("total_amount_awarded", FloatField()))
-        )
-    )
-
-    total_grants_by_agency_count = list(
-        Grant.objects.values("funding_agency__name").annotate(count=Count("total_amount_awarded"))
-    )
-
-    total_grants_by_agency_count = {ele["funding_agency__name"]: ele["count"] for ele in total_grants_by_agency_count}
-
-    total_grants_by_agency = [
-        [
-            "{}: ${} ({})".format(
-                ele["funding_agency__name"],
-                intcomma(int(ele["total_amount"])),
-                total_grants_by_agency_count[ele["funding_agency__name"]],
-            ),
-            ele["total_amount"],
-        ]
-        for ele in total_grants_by_agency_sum
-    ]
-
-    total_grants_by_agency = sorted(total_grants_by_agency, key=operator.itemgetter(1), reverse=True)
-    grants_agency_chart_data = generate_total_grants_by_agency_chart_data(total_grants_by_agency)
-    context["grants_agency_chart_data"] = grants_agency_chart_data
     sum_agg = Sum(Cast("total_amount_awarded", FloatField()), default=0)
-    context["grants_total"] = intcomma(
+    context["grant_total"] = intcomma(
         int(Grant.objects.aggregate(total_amount_awarded__sum=sum_agg)["total_amount_awarded__sum"])
     )
-    context["grants_total_pi_only"] = intcomma(
+    context["grant_total_pi_only"] = intcomma(
         int(Grant.objects.filter(role="PI").aggregate(total_amount_awarded__sum=sum_agg)["total_amount_awarded__sum"])
     )
-    context["grants_total_copi_only"] = intcomma(
+    context["grant_total_copi_only"] = intcomma(
         int(Grant.objects.filter(role="CoPI").aggregate(total_amount_awarded__sum=sum_agg)["total_amount_awarded__sum"])
     )
-    context["grants_total_sp_only"] = intcomma(
+    context["grant_total_sp_only"] = intcomma(
         int(Grant.objects.filter(role="SP").aggregate(total_amount_awarded__sum=sum_agg)["total_amount_awarded__sum"])
     )
-
     return render(request, "portal/center_summary.html", context)
 
 
@@ -225,14 +170,43 @@ def allocation_summary(request):
 
     allocations_count_by_resource = dict(Counter(allocation_resources))
 
-    allocation_count_by_resource_type = dict(Counter([ele.resource_type.name for ele in allocation_resources]))
-
-    allocations_chart_data = generate_allocations_chart_data()
-    resources_chart_data = generate_resources_chart_data(allocation_count_by_resource_type)
-
     context = {}
-    context["allocations_chart_data"] = allocations_chart_data
     context["allocations_count_by_resource"] = allocations_count_by_resource
-    context["resources_chart_data"] = resources_chart_data
 
     return render(request, "portal/allocation_summary.html", context)
+
+
+def allocation_by_status(request):
+    data = [
+        {"name": "Active", "total": Allocation.objects.filter(status__name="Active").count()},
+        {"name": "New", "total": Allocation.objects.filter(status__name="New").count()},
+        {"name": "Renewal Requested", "total": Allocation.objects.filter(status__name="Renewal Requested").count()},
+    ]
+
+    now = datetime.datetime.now()
+    start_time = datetime.date(now.year - 1, 1, 1)
+    data.append(
+        {
+            "name": "Expired",
+            "total": Allocation.objects.filter(status__name="Expired", end_date__gte=start_time).count(),
+        }
+    )
+
+    return JsonResponse({"data": data})
+
+
+def resource_by_type(request):
+    allocation_resources = []
+    for allocation in Allocation.objects.filter(status__name="Active"):
+        parent_resource = allocation.get_parent_resource
+        allocation_resources.append(
+            parent_resource.parent_resource if parent_resource.parent_resource else parent_resource
+        )
+
+    allocation_count_by_resource_type = dict(Counter([ele.resource_type.name for ele in allocation_resources]))
+
+    data = []
+    for rtype in ["Cluster", "Cloud", "Server", "Storage"]:
+        data.append({"name": rtype, "total": allocation_count_by_resource_type.get(rtype, 0)})
+
+    return JsonResponse({"data": data})

@@ -154,17 +154,11 @@ class AllocationDetailView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
 
         allocation_changes = allocation_obj.allocationchangerequest_set.select_related("status").all().order_by("-pk")
 
-        guage_data = []
         invalid_attributes = []
         for attribute in attributes_with_usage:
             try:
-                guage_data.append(
-                    generate_guauge_data_from_usage(
-                        attribute.allocation_attribute_type.name,
-                        float(attribute.value),
-                        float(attribute.allocationattributeusage.value),
-                    )
-                )
+                float(attribute.value)
+                float(attribute.allocationattributeusage.value)
             except ValueError:
                 logger.error(
                     "Allocation attribute '%s' is not an int but has a usage", attribute.allocation_attribute_type.name
@@ -175,7 +169,6 @@ class AllocationDetailView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
             attributes_with_usage.remove(a)
 
         context["allocation_users"] = allocation_users
-        context["guage_data"] = guage_data
         context["attributes_with_usage"] = attributes_with_usage
         context["attributes"] = attributes
         context["allocation_changes"] = allocation_changes
