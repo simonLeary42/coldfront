@@ -12,8 +12,13 @@ export function initGaugeChart(): void {
   for (const element of gauges) {
     if (element !== null) {
       const used = Number(element?.getAttribute('data-used') || 0);
-      const total = Number(element?.getAttribute('data-total') || 0);
+      let total = Number(element?.getAttribute('data-total') || 0) - used;
       const title = String(element?.getAttribute('data-title') || '');
+
+      if (total < 0) {
+        total = 0;
+      }
+
       createGaugeChart(element, title, used, total);
     }
   }
