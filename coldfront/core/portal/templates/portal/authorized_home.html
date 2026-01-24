@@ -60,9 +60,9 @@
             {%  elif allocation.status.name == "Renewal Requested" %}
             <td><div class="d-grid gap-2"><a href="{% url 'allocation-detail' allocation.id %}" class="btn btn-danger">Renewal Requested</a></div></td>
             {%  elif allocation.expires_in >= 0 and  allocation.expires_in <= 30 %}
-            <td><div class="d-grid gap-2"><a href="{% url 'allocation-detail' allocation.id %}" class="btn btn-danger">Expires in <span class="badge bg-light">{{allocation.expires_in}}</span> day{{allocation.expires_in|pluralize }}</a></div></td>
+            <td><div class="d-grid gap-2"><a href="{% url 'allocation-detail' allocation.id %}" class="btn btn-danger">Expires in <span class="badge bg-dark">{{allocation.expires_in}}</span> day{{allocation.expires_in|pluralize }}</a></div></td>
             {% elif allocation.expires_in > 30 and allocation.expires_in <= 90 %}
-            <td><div class="d-grid gap-2"><a href="{% url 'allocation-detail' allocation.id %}" class="btn btn-warning">Expires in <span class="badge bg-light">{{allocation.expires_in}}</span> day{{allocation.expires_in|pluralize }}</a></div></td>
+            <td><div class="d-grid gap-2"><a href="{% url 'allocation-detail' allocation.id %}" class="btn btn-warning">Expires in <span class="badge bg-dark">{{allocation.expires_in}}</span> day{{allocation.expires_in|pluralize }}</a></div></td>
             {% elif allocation.status.name == "Pending" %}
             <td><div class="d-grid gap-2"><a href="{% url 'allocation-detail' allocation.id %}" class="btn btn-info">{{allocation.status}}</a></div></td>
             {% elif allocation.status.name == "Active" %}
