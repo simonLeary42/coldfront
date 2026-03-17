@@ -394,7 +394,6 @@ class Allocation(TimeStampedModel):
                     "resource": self.get_parent_resource,
                     "url": build_link(reverse("allocation-review-eula", kwargs={"pk": self.pk})),
                 },
-                EMAIL_SENDER,
                 [user.email],
             )
 
