@@ -13,6 +13,14 @@ from coldfront.plugins.project_openldap import tasks
 
 
 class TasksTest(TestCase):
+    project_ou = "ou=projects,dc=example,dc=org"
+    archive_ou = "ou=archive,dc=example,dc=org"
+    project_code = "proj001"
+    project_ou_dn = f"ou={project_code},{project_ou}"
+    project_group_dn = f"cn={project_code},ou={project_code},{project_ou}"
+    project_archived_ou_dn = f"ou={project_code},{archive_ou}"
+    project_archived_group_dn = f"cn={project_code},ou={project_code},{archive_ou}"
+
     @classmethod
     def setUpClass(cls):
         call_command("add_default_project_choices")
@@ -31,15 +39,7 @@ class TasksTest(TestCase):
         cls.project_user = ProjectUserFactory(project=cls.project, user=cls.project_member)
 
     def setUp(self):
-        self.project_ou = "ou=projects,dc=example,dc=org"
-        self.archive_ou = "ou=archive,dc=example,dc=org"
         self.bind_user = "cn=test_bind,dc=example,dc=org"
-        self.project_ou_dn = f"ou={self.project.project_code},{self.project_ou}"
-        self.project_group_dn = f"cn={self.project.project_code},ou={self.project.project_code},{self.project_ou}"
-        self.project_archived_ou_dn = f"ou={self.project.project_code},{self.archive_ou}"
-        self.project_archived_group_dn = (
-            f"cn={self.project.project_code},ou={self.project.project_code},{self.archive_ou}"
-        )
         self.bind_password = "bind_password"
         self.gid_start = 8000
         self.mock_server = Server("mock_ldap")
