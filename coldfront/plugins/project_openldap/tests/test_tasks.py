@@ -20,6 +20,10 @@ class TasksTest(TestCase):
     project_group_dn = f"cn={project_code},ou={project_code},{project_ou}"
     project_archived_ou_dn = f"ou={project_code},{archive_ou}"
     project_archived_group_dn = f"cn={project_code},ou={project_code},{archive_ou}"
+    bind_username = "test_bind"
+    bind_dn = f"cn={bind_username},dc=example,dc=org"
+    bind_password = "bind_password"
+    gid_start = 8000
 
     @classmethod
     def setUpClass(cls):
@@ -39,13 +43,10 @@ class TasksTest(TestCase):
         cls.project_user = ProjectUserFactory(project=cls.project, user=cls.project_member)
 
     def setUp(self):
-        self.bind_user = "cn=test_bind,dc=example,dc=org"
-        self.bind_password = "bind_password"
-        self.gid_start = 8000
         self.mock_server = Server("mock_ldap")
         self.mock_connection = Connection(
             self.mock_server,
-            user=self.bind_user,
+            user=self.bind_dn,
             password=self.bind_password,
             client_strategy=MOCK_SYNC,
         )
@@ -62,11 +63,11 @@ class TasksTest(TestCase):
             {"objectClass": ["top", "organizationalUnit"], "ou": ["archive"]},
         )
         self.mock_connection.strategy.add_entry(
-            self.bind_user,
+            self.bind_dn,
             {
                 "objectClass": ["top", "person"],
-                "cn": ["test_bind"],
-                "sn": ["test_bind"],
+                "cn": [self.bind_username],
+                "sn": [self.bind_username],
                 "userPassword": [self.bind_password],
             },
         )
@@ -94,7 +95,7 @@ class TasksTest(TestCase):
             "coldfront.plugins.project_openldap.utils",
             PROJECT_OPENLDAP_OU=self.project_ou,
             PROJECT_OPENLDAP_ARCHIVE_OU=self.archive_ou,
-            PROJECT_OPENLDAP_BIND_USER=self.bind_user,
+            PROJECT_OPENLDAP_BIND_USER=self.bind_dn,
             PROJECT_OPENLDAP_BIND_PASSWORD=self.bind_password,
             PROJECT_OPENLDAP_DESCRIPTION_TITLE_LENGTH=100,
         )
