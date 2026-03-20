@@ -51,16 +51,13 @@ class TasksTest(TestCase):
             client_strategy=MOCK_SYNC,
         )
         self.mock_connection.strategy.add_entry(
-            "dc=example,dc=org",
-            {"objectClass": ["top", "domain"], "dc": ["example"]},
+            "dc=example,dc=org", {"objectClass": ["top", "domain"], "dc": ["example"]}
         )
         self.mock_connection.strategy.add_entry(
-            self.project_ou,
-            {"objectClass": ["top", "organizationalUnit"], "ou": ["projects"]},
+            self.project_ou, {"objectClass": ["top", "organizationalUnit"], "ou": ["projects"]}
         )
         self.mock_connection.strategy.add_entry(
-            self.archive_ou,
-            {"objectClass": ["top", "organizationalUnit"], "ou": ["archive"]},
+            self.archive_ou, {"objectClass": ["top", "organizationalUnit"], "ou": ["archive"]}
         )
         self.mock_connection.strategy.add_entry(
             self.bind_dn,
@@ -77,8 +74,7 @@ class TasksTest(TestCase):
             return self.mock_connection
 
         self.openldap_conn_patch = patch(
-            "coldfront.plugins.project_openldap.utils.openldap_connection",
-            side_effect=openldap_connection_mock,
+            "coldfront.plugins.project_openldap.utils.openldap_connection", side_effect=openldap_connection_mock
         )
         self.openldap_conn_patch.start()
         self.addCleanup(self.openldap_conn_patch.stop)
