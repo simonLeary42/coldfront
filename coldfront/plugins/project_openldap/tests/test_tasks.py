@@ -13,15 +13,16 @@ from coldfront.plugins.project_openldap import tasks
 
 
 class TasksTest(TestCase):
-    project_ou = "ou=projects,dc=example,dc=org"
-    archive_ou = "ou=archive,dc=example,dc=org"
+    root_ou = "dc=example,dc=org"
+    project_ou = f"ou=projects,{root_ou}"
+    archive_ou = f"ou=archive,{root_ou}"
     project_code = "proj001"
     project_ou_dn = f"ou={project_code},{project_ou}"
     project_group_dn = f"cn={project_code},ou={project_code},{project_ou}"
     project_archived_ou_dn = f"ou={project_code},{archive_ou}"
     project_archived_group_dn = f"cn={project_code},ou={project_code},{archive_ou}"
     bind_username = "test_bind"
-    bind_dn = f"cn={bind_username},dc=example,dc=org"
+    bind_dn = f"cn={bind_username},{root_ou}"
     bind_password = "bind_password"
     gid_start = 8000
 
@@ -50,9 +51,7 @@ class TasksTest(TestCase):
             password=self.bind_password,
             client_strategy=MOCK_SYNC,
         )
-        self.mock_connection.strategy.add_entry(
-            "dc=example,dc=org", {"objectClass": ["top", "domain"], "dc": ["example"]}
-        )
+        self.mock_connection.strategy.add_entry(self.root_ou, {"objectClass": ["top", "domain"], "dc": ["example"]})
         self.mock_connection.strategy.add_entry(
             self.project_ou, {"objectClass": ["top", "organizationalUnit"], "ou": ["projects"]}
         )
