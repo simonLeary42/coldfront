@@ -122,6 +122,8 @@ class TasksTest(TestCase):
         self.assertEqual(len(self.mock_connection.entries), 1)
         return int(self.mock_connection.entries[0].gidNumber.value)
 
+    # END TOOLING, START TEST CASES ####################################################################################
+
     def test_openldap_add_project(self):
         tasks.add_project(self.project)
         self.assertTrue(self._search(self.project_ou_dn, "(objectclass=organizationalUnit)"))
