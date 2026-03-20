@@ -27,7 +27,6 @@ class TasksTest(TestCase):
             project_code="proj001",
             institution="Example Institute",
         )
-
         cls.project_member = UserFactory(username="member_user")
         cls.project_user = ProjectUserFactory(project=cls.project, user=cls.project_member)
 
@@ -37,7 +36,6 @@ class TasksTest(TestCase):
         self.bind_user = "cn=test_bind,dc=example,dc=org"
         self.bind_password = "bind_password"
         self.gid_start = 8000
-
         self.mock_server = Server("mock_ldap")
         self.mock_connection = Connection(
             self.mock_server,
@@ -45,7 +43,6 @@ class TasksTest(TestCase):
             password=self.bind_password,
             client_strategy=MOCK_SYNC,
         )
-
         self.mock_connection.strategy.add_entry(
             "dc=example,dc=org",
             {"objectClass": ["top", "domain"], "dc": ["example"]},
@@ -78,7 +75,6 @@ class TasksTest(TestCase):
         )
         self.openldap_conn_patch.start()
         self.addCleanup(self.openldap_conn_patch.stop)
-
         self.tasks_constants_patch = patch.multiple(
             tasks,
             PROJECT_OPENLDAP_OU=self.project_ou,
@@ -88,7 +84,6 @@ class TasksTest(TestCase):
         )
         self.tasks_constants_patch.start()
         self.addCleanup(self.tasks_constants_patch.stop)
-
         self.utils_constants_patch = patch.multiple(
             "coldfront.plugins.project_openldap.utils",
             PROJECT_OPENLDAP_OU=self.project_ou,
@@ -135,7 +130,6 @@ class TasksTest(TestCase):
 
     def test_openldap_add_project(self):
         tasks.add_project(self.project)
-
         self.assertTrue(self._search(self._project_ou_dn(), "(objectclass=organizationalUnit)"))
         self.assertTrue(self._search(self._project_group_dn(), "(objectclass=posixGroup)"))
         self.assertIn(self.project.pi.username, self._member_uids(self._project_group_dn()))
@@ -153,7 +147,6 @@ class TasksTest(TestCase):
             ),
         ):
             tasks.remove_project(self.project)
-
         self.assertFalse(self._search(self._project_group_dn(), "(objectclass=posixGroup)"))
         self.assertFalse(self._search(self._project_ou_dn(), "(objectclass=organizationalUnit)"))
 
@@ -173,23 +166,19 @@ class TasksTest(TestCase):
             ),
         ):
             tasks.remove_project(self.project)
-
         self.assertFalse(self._search(self._project_ou_dn(), "(objectclass=organizationalUnit)"))
         self.assertTrue(self._search(self._project_archived_ou_dn(), "(objectclass=organizationalUnit)"))
 
     def test_openldap_update_project(self):
         tasks.add_project(self.project)
         self.project.title = "Updated title for LDAP description"
-
         tasks.update_project(self.project)
-
         description = self._description(self._project_group_dn())
         self.assertIn("Updated title for LDAP description", description)
 
     def test_openldap_add_user_project(self):
         tasks.add_project(self.project)
         tasks.add_user_project(self.project_user.pk)
-
         member_uids = self._member_uids(self._project_group_dn())
         self.assertIn(self.project.pi.username, member_uids)
         self.assertIn(self.project_member.username, member_uids)
@@ -198,7 +187,6 @@ class TasksTest(TestCase):
         tasks.add_project(self.project)
         tasks.add_user_project(self.project_user.pk)
         tasks.remove_user_project(self.project_user.pk)
-
         member_uids = self._member_uids(self._project_group_dn())
         self.assertIn(self.project.pi.username, member_uids)
         self.assertNotIn(self.project_member.username, member_uids)
