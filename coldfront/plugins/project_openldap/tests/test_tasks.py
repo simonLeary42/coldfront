@@ -137,7 +137,6 @@ class TasksTest(TestCase):
 
     def test_openldap_remove_project(self):
         tasks.add_project(self.project)
-
         with (
             patch.object(tasks, "PROJECT_OPENLDAP_REMOVE_PROJECT", True),
             patch.object(
@@ -152,7 +151,6 @@ class TasksTest(TestCase):
 
     def test_openldap_archive_project(self):
         tasks.add_project(self.project)
-
         with (
             patch.object(tasks, "PROJECT_OPENLDAP_REMOVE_PROJECT", False),
             patch.object(
