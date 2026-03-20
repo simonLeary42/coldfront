@@ -62,7 +62,7 @@ jobs:
         run: uv run reuse lint
 
       - name: Run tests
-        run: uv run coldfront test
+        run: PLUGIN_SLURM=true PLUGIN_PROJECT_OPENLDAP=true PROJECT_OPENLDAP_GID_START=-1 uv run coldfront test
 
       - name: Check for migrations
         run: uv run coldfront makemigrations --check
