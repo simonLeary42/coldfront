@@ -32,7 +32,7 @@ class TasksTest(TestCase):
         cls.project = ProjectFactory(
             pi=cls.pi,
             title="A very descriptive project title",
-            project_code="proj001",
+            project_code=cls.project_code,
             institution="Example Institute",
         )
         cls.project_member = UserFactory(username="member_user")
