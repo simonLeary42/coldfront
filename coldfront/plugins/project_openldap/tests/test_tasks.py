@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from django.core.management import call_command
 from django.test import TestCase
+from ldap3 import MOCK_SYNC, Connection, Server
 
 from coldfront.core.test_helpers.factories import ProjectFactory, ProjectUserFactory, UserFactory
 from coldfront.plugins.project_openldap import tasks
@@ -30,38 +31,119 @@ class TasksTest(TestCase):
         cls.project_member = UserFactory(username="member_user")
         cls.project_user = ProjectUserFactory(project=cls.project, user=cls.project_member)
 
-    @patch("coldfront.plugins.project_openldap.tasks.allocate_project_openldap_gid", return_value=8123)
-    @patch("coldfront.plugins.project_openldap.tasks.add_members_to_openldap_posixgroup")
-    @patch("coldfront.plugins.project_openldap.tasks.add_posixgroup_to_openldap")
-    @patch("coldfront.plugins.project_openldap.tasks.add_per_project_ou_to_openldap")
-    def test_openldap_add_project(
-        self,
-        add_per_project_ou_to_openldap_mock,
-        add_posixgroup_to_openldap_mock,
-        add_members_to_openldap_posixgroup_mock,
-        allocate_project_openldap_gid_mock,
-    ):
+    def setUp(self):
+        self.project_ou = "ou=projects,dc=example,dc=org"
+        self.archive_ou = "ou=archive,dc=example,dc=org"
+        self.bind_user = "cn=test_bind,dc=example,dc=org"
+        self.bind_password = "bind_password"
+        self.gid_start = 8000
+
+        self.mock_server = Server("mock_ldap")
+        self.mock_connection = Connection(
+            self.mock_server,
+            user=self.bind_user,
+            password=self.bind_password,
+            client_strategy=MOCK_SYNC,
+        )
+
+        self.mock_connection.strategy.add_entry(
+            "dc=example,dc=org",
+            {"objectClass": ["top", "domain"], "dc": ["example"]},
+        )
+        self.mock_connection.strategy.add_entry(
+            self.project_ou,
+            {"objectClass": ["top", "organizationalUnit"], "ou": ["projects"]},
+        )
+        self.mock_connection.strategy.add_entry(
+            self.archive_ou,
+            {"objectClass": ["top", "organizationalUnit"], "ou": ["archive"]},
+        )
+        self.mock_connection.strategy.add_entry(
+            self.bind_user,
+            {
+                "objectClass": ["top", "person"],
+                "cn": ["test_bind"],
+                "sn": ["test_bind"],
+                "userPassword": [self.bind_password],
+            },
+        )
+
+        def openldap_connection_mock(_server_opt, _bind_user, _bind_password):
+            self.mock_connection.bind()
+            return self.mock_connection
+
+        self.openldap_conn_patch = patch(
+            "coldfront.plugins.project_openldap.utils.openldap_connection",
+            side_effect=openldap_connection_mock,
+        )
+        self.openldap_conn_patch.start()
+        self.addCleanup(self.openldap_conn_patch.stop)
+
+        self.tasks_constants_patch = patch.multiple(
+            tasks,
+            PROJECT_OPENLDAP_OU=self.project_ou,
+            PROJECT_OPENLDAP_ARCHIVE_OU=self.archive_ou,
+            PROJECT_OPENLDAP_GID_START=self.gid_start,
+            PROJECT_OPENLDAP_REMOVE_PROJECT=True,
+        )
+        self.tasks_constants_patch.start()
+        self.addCleanup(self.tasks_constants_patch.stop)
+
+        self.utils_constants_patch = patch.multiple(
+            "coldfront.plugins.project_openldap.utils",
+            PROJECT_OPENLDAP_OU=self.project_ou,
+            PROJECT_OPENLDAP_ARCHIVE_OU=self.archive_ou,
+            PROJECT_OPENLDAP_BIND_USER=self.bind_user,
+            PROJECT_OPENLDAP_BIND_PASSWORD=self.bind_password,
+            PROJECT_OPENLDAP_DESCRIPTION_TITLE_LENGTH=100,
+        )
+        self.utils_constants_patch.start()
+        self.addCleanup(self.utils_constants_patch.stop)
+
+    def _project_ou_dn(self):
+        return f"ou={self.project.project_code},{self.project_ou}"
+
+    def _project_group_dn(self):
+        return f"cn={self.project.project_code},ou={self.project.project_code},{self.project_ou}"
+
+    def _project_archived_ou_dn(self):
+        return f"ou={self.project.project_code},{self.archive_ou}"
+
+    def _project_archived_group_dn(self):
+        return f"cn={self.project.project_code},ou={self.project.project_code},{self.archive_ou}"
+
+    def _search(self, dn, ldap_filter, attributes=None):
+        self.mock_connection.bind()
+        if attributes is None:
+            return self.mock_connection.search(dn, ldap_filter)
+        return self.mock_connection.search(dn, ldap_filter, attributes=attributes)
+
+    def _member_uids(self, dn):
+        self._search(dn, "(objectclass=posixGroup)", attributes=["memberUid"])
+        self.assertEqual(len(self.mock_connection.entries), 1)
+        return set(self.mock_connection.entries[0].memberUid.values)
+
+    def _description(self, dn):
+        self._search(dn, "(objectclass=posixGroup)", attributes=["description"])
+        self.assertEqual(len(self.mock_connection.entries), 1)
+        return str(self.mock_connection.entries[0].description)
+
+    def _gid(self, dn):
+        self._search(dn, "(objectclass=posixGroup)", attributes=["gidNumber"])
+        self.assertEqual(len(self.mock_connection.entries), 1)
+        return int(self.mock_connection.entries[0].gidNumber.value)
+
+    def test_openldap_add_project(self):
         tasks.add_project(self.project)
 
-        expected_ou_dn = f"ou={self.project.project_code},{tasks.PROJECT_OPENLDAP_OU}"
-        expected_posix_dn = f"cn={self.project.project_code},ou={self.project.project_code},{tasks.PROJECT_OPENLDAP_OU}"
+        self.assertTrue(self._search(self._project_ou_dn(), "(objectclass=organizationalUnit)"))
+        self.assertTrue(self._search(self._project_group_dn(), "(objectclass=posixGroup)"))
+        self.assertIn(self.project.pi.username, self._member_uids(self._project_group_dn()))
+        self.assertEqual(self._gid(self._project_group_dn()), self.project.pk + self.gid_start)
 
-        add_per_project_ou_to_openldap_mock.assert_called_once_with(
-            self.project,
-            expected_ou_dn,
-            f"OU for project {self.project.project_code}",
-        )
-        allocate_project_openldap_gid_mock.assert_called_once_with(self.project.pk, tasks.PROJECT_OPENLDAP_GID_START)
-        add_posixgroup_to_openldap_mock.assert_called_once()
-        self.assertEqual(add_posixgroup_to_openldap_mock.call_args.args[0], expected_posix_dn)
-        self.assertEqual(add_posixgroup_to_openldap_mock.call_args.args[2], 8123)
-        add_members_to_openldap_posixgroup_mock.assert_called_once_with(
-            expected_posix_dn,
-            [self.project.pi.username],
-        )
+    def test_openldap_remove_project(self):
+        tasks.add_project(self.project)
 
-    @patch("coldfront.plugins.project_openldap.tasks.remove_dn_from_openldap")
-    def test_openldap_remove_project(self, remove_dn_from_openldap_mock):
         with (
             patch.object(tasks, "PROJECT_OPENLDAP_REMOVE_PROJECT", True),
             patch.object(
@@ -72,60 +154,51 @@ class TasksTest(TestCase):
         ):
             tasks.remove_project(self.project)
 
-        expected_ou_dn = f"ou={self.project.project_code},{tasks.PROJECT_OPENLDAP_OU}"
-        expected_posix_dn = f"cn={self.project.project_code},ou={self.project.project_code},{tasks.PROJECT_OPENLDAP_OU}"
-        remove_dn_from_openldap_mock.assert_any_call(expected_posix_dn)
-        remove_dn_from_openldap_mock.assert_any_call(expected_ou_dn)
-        self.assertEqual(remove_dn_from_openldap_mock.call_count, 2)
+        self.assertFalse(self._search(self._project_group_dn(), "(objectclass=posixGroup)"))
+        self.assertFalse(self._search(self._project_ou_dn(), "(objectclass=organizationalUnit)"))
 
-    @patch("coldfront.plugins.project_openldap.tasks.move_dn_in_openldap")
-    @patch("coldfront.plugins.project_openldap.tasks.remove_dn_from_openldap")
-    def test_openldap_archive_project(self, remove_dn_from_openldap_mock, move_dn_in_openldap_mock):
+    def test_openldap_archive_project(self):
+        tasks.add_project(self.project)
+
         with (
             patch.object(tasks, "PROJECT_OPENLDAP_REMOVE_PROJECT", False),
             patch.object(
                 tasks,
                 "PROJECT_OPENLDAP_ARCHIVE_OU",
-                "ou=archive,dc=example,dc=org",
+                self.archive_ou,
+            ),
+            patch(
+                "coldfront.plugins.project_openldap.utils.PROJECT_OPENLDAP_ARCHIVE_OU",
+                self.archive_ou,
             ),
         ):
             tasks.remove_project(self.project)
 
-        expected_ou_dn = f"ou={self.project.project_code},{tasks.PROJECT_OPENLDAP_OU}"
-        move_dn_in_openldap_mock.assert_called_once_with(
-            expected_ou_dn,
-            f"ou={self.project.project_code}",
-            "ou=archive,dc=example,dc=org",
-        )
-        remove_dn_from_openldap_mock.assert_not_called()
+        self.assertFalse(self._search(self._project_ou_dn(), "(objectclass=organizationalUnit)"))
+        self.assertTrue(self._search(self._project_archived_ou_dn(), "(objectclass=organizationalUnit)"))
 
-    @patch("coldfront.plugins.project_openldap.tasks.update_posixgroup_description_in_openldap")
-    def test_openldap_update_project(self, update_posixgroup_description_in_openldap_mock):
+    def test_openldap_update_project(self):
+        tasks.add_project(self.project)
+        self.project.title = "Updated title for LDAP description"
+
         tasks.update_project(self.project)
 
-        expected_posix_dn = f"cn={self.project.project_code},ou={self.project.project_code},{tasks.PROJECT_OPENLDAP_OU}"
-        update_posixgroup_description_in_openldap_mock.assert_called_once()
-        self.assertEqual(
-            update_posixgroup_description_in_openldap_mock.call_args.args[0],
-            expected_posix_dn,
-        )
+        description = self._description(self._project_group_dn())
+        self.assertIn("Updated title for LDAP description", description)
 
-    @patch("coldfront.plugins.project_openldap.tasks.add_members_to_openldap_posixgroup")
-    def test_openldap_add_user_project(self, add_members_to_openldap_posixgroup_mock):
+    def test_openldap_add_user_project(self):
+        tasks.add_project(self.project)
         tasks.add_user_project(self.project_user.pk)
 
-        expected_posix_dn = f"cn={self.project.project_code},ou={self.project.project_code},{tasks.PROJECT_OPENLDAP_OU}"
-        add_members_to_openldap_posixgroup_mock.assert_called_once_with(
-            expected_posix_dn,
-            [self.project_member.username],
-        )
+        member_uids = self._member_uids(self._project_group_dn())
+        self.assertIn(self.project.pi.username, member_uids)
+        self.assertIn(self.project_member.username, member_uids)
 
-    @patch("coldfront.plugins.project_openldap.tasks.remove_members_from_openldap_posixgroup")
-    def test_openldap_remove_user_project(self, remove_members_from_openldap_posixgroup_mock):
+    def test_openldap_remove_user_project(self):
+        tasks.add_project(self.project)
+        tasks.add_user_project(self.project_user.pk)
         tasks.remove_user_project(self.project_user.pk)
 
-        expected_posix_dn = f"cn={self.project.project_code},ou={self.project.project_code},{tasks.PROJECT_OPENLDAP_OU}"
-        remove_members_from_openldap_posixgroup_mock.assert_called_once_with(
-            expected_posix_dn,
-            [self.project_member.username],
-        )
+        member_uids = self._member_uids(self._project_group_dn())
+        self.assertIn(self.project.pi.username, member_uids)
+        self.assertNotIn(self.project_member.username, member_uids)
