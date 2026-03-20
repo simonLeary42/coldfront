@@ -133,11 +133,7 @@ class TasksTest(TestCase):
         tasks.add_project(self.project)
         with (
             patch.object(tasks, "PROJECT_OPENLDAP_REMOVE_PROJECT", True),
-            patch.object(
-                tasks,
-                "PROJECT_OPENLDAP_ARCHIVE_OU",
-                "",
-            ),
+            patch.object(tasks, "PROJECT_OPENLDAP_ARCHIVE_OU", ""),
         ):
             tasks.remove_project(self.project)
         self.assertFalse(self._search(self.project_group_dn, "(objectclass=posixGroup)"))
@@ -147,15 +143,8 @@ class TasksTest(TestCase):
         tasks.add_project(self.project)
         with (
             patch.object(tasks, "PROJECT_OPENLDAP_REMOVE_PROJECT", False),
-            patch.object(
-                tasks,
-                "PROJECT_OPENLDAP_ARCHIVE_OU",
-                self.archive_ou,
-            ),
-            patch(
-                "coldfront.plugins.project_openldap.utils.PROJECT_OPENLDAP_ARCHIVE_OU",
-                self.archive_ou,
-            ),
+            patch.object(tasks, "PROJECT_OPENLDAP_ARCHIVE_OU", self.archive_ou),
+            patch("coldfront.plugins.project_openldap.utils.PROJECT_OPENLDAP_ARCHIVE_OU", self.archive_ou),
         ):
             tasks.remove_project(self.project)
         self.assertFalse(self._search(self.project_ou_dn, "(objectclass=organizationalUnit)"))
