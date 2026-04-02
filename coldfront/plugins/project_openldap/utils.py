@@ -8,7 +8,7 @@ import logging
 import textwrap
 from typing import Any, Tuple
 
-from ldap3 import ALL_ATTRIBUTES, BASE, MODIFY_ADD, MODIFY_DELETE, MODIFY_REPLACE, Connection, Server, Tls
+from ldap3 import BASE, MODIFY_ADD, MODIFY_DELETE, MODIFY_REPLACE, Connection, Server, Tls
 from ldap3.core.exceptions import LDAPException
 from ldap3.utils.log import ERROR, set_library_log_detail_level
 
@@ -165,7 +165,7 @@ def ldapsearch_get_posixgroup_memberuids(dn):
     * raises `LDAPException` if the `ldap3.Connection` cannot be established or if the `ldap3.Result` code is nonzero
     * raises `KeyError` if the `entries` attribute of the `ldap3.Connection` is empty
     """
-    conn, _ = _ldap_read_wrapper(Connection.search, dn, "(objectclass=posixGroup)", BASE, attributes=ALL_ATTRIBUTES)
+    conn, _ = _ldap_read_wrapper(Connection.search, dn, "(objectclass=posixGroup)", BASE, attributes=["memberUid"])
     if len(conn.entries) == 0:
         raise KeyError(dn)
     return conn.entries
